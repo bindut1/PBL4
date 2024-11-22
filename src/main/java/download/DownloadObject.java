@@ -1,11 +1,13 @@
 package download;
 
+import view.ProgressUI;
+
 public class DownloadObject {
 	public AbstractDownloadObject downloader;
+	
 	protected String urlInput;
 	protected String path;
-	protected String pathTorrentPre;
-
+	
 	public DownloadObject(String url, String path) {
 		this.urlInput = url;
 		this.path = path;
@@ -23,7 +25,7 @@ public class DownloadObject {
 			this.downloader = new DownloadTorrent();
 		else
 			this.downloader = new DownloadDirectLink();
-		
 		this.downloader.start(this.urlInput, this.path);
 	}
+
 }

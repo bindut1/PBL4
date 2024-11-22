@@ -10,6 +10,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.swing.SwingUtilities;
+
 import com.jfoenix.controls.*;
 import com.jfoenix.controls.cells.editors.base.JFXTreeTableCell;
 import com.jfoenix.controls.datamodels.treetable.RecursiveTreeObject;
@@ -17,6 +19,8 @@ import com.jfoenix.controls.datamodels.treetable.RecursiveTreeObject;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import download.DownloadObject;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -28,6 +32,8 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TreeItem;
 import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
@@ -35,12 +41,13 @@ import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.util.Duration;
 import util.FileHandle;
 import util.HttpConnection;
 
 public class DownloadUI extends Stage {
 
-	private List<DownloadHandle> downloads;
+	private List<UIObjectGeneral> downloads;
 
 	private double xOffset = 0;
 	private double yOffset = 0;
@@ -49,12 +56,16 @@ public class DownloadUI extends Stage {
 	JFXTreeTableView<DownloadItem> downloadTable;
 
 	public MainUI mainUI;
+	public ProgressUI objProgressUI;
 
 //	private String defaultSavePath = System.getProperty("user.home") + "\\Downloads";
 	private String defaultSavePath = "D:\\PBL4\\SAVE";
+	Timeline progressUpdateTimeline;
 
 	public DownloadUI(Stage owner, MainUI mainUI) {
+
 		this.mainUI = mainUI;
+		this.objProgressUI = new ProgressUI(owner);
 		downloads = new ArrayList<>();
 
 		initOwner(owner);
@@ -159,7 +170,7 @@ public class DownloadUI extends Stage {
 
 		JFXTreeTableColumn<DownloadItem, String> filenameColumn = new JFXTreeTableColumn<>("Liên kết");
 		filenameColumn.setPrefWidth(257);
-		filenameColumn.setCellValueFactory(param -> param.getValue().getValue().filename);
+		filenameColumn.setCellValueFactory(param -> param.getValue().getValue().url);
 
 		JFXTreeTableColumn<DownloadItem, String> savePathColumn = new JFXTreeTableColumn<>("Đường dẫn lưu");
 		savePathColumn.setPrefWidth(257);
@@ -237,9 +248,8 @@ public class DownloadUI extends Stage {
 		downloadButton.getStyleClass().add("download-button");
 
 		downloadButton.setOnAction(e -> {
-			handleDownload();
+			handleDownload(owner);
 			Platform.runLater(() -> {
-//				downloadItems.clear();
 				close();
 			});
 		});
@@ -270,20 +280,26 @@ public class DownloadUI extends Stage {
 		return button;
 	}
 
-	public List<String> listFileDownloading(List<DownloadItem> items) {
-		return items.stream().filter(item -> item.selected.get())
-				.map(item -> item.filename.get() + "," + item.savePath.get()).collect(Collectors.toList());
+	public List<UIObjectGeneral> convertDownloadItemToUIObjectGeneral(List<DownloadItem> items) {
+		List<UIObjectGeneral> uiObjectList = new ArrayList<>();
+		if (items == null) {
+			System.out.println("List downloadItems la null");
+		} else {
+			for (DownloadItem item : items) {
+				UIObjectGeneral uiObject = new UIObjectGeneral(item.url.get(), item.savePath.get());
+				uiObject.setUrl(item.url.get());
+				uiObject.setPath(item.savePath.get());
+				uiObject.setSelected(item.selected.get());
+
+				uiObjectList.add(uiObject);
+			}
+		}
+		return uiObjectList;
 	}
 
-	public List<String> listFileWaiting(List<DownloadItem> items) {
-		return items.stream().filter(item -> !item.selected.get())
-				.map(item -> item.filename.get() + "," + item.savePath.get()).collect(Collectors.toList());
-	}
-
-	public void saveFileWaitingToTxt(String fileName, long fileSize, String path, String downloadTime) {
-		String date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+	public void saveFileWaitingToTxt(String fileName, long fileSize, String path) {
 		String formattedSize = FileHandle.formatFileSize(fileSize);
-		String logEntry = String.format("%s, %s, %s, %s, %s\n", fileName, formattedSize, downloadTime, date, path);
+		String logEntry = String.format("%s, %s, %s\n", fileName, formattedSize, path);
 		try (FileWriter fw = new FileWriter("WaitingFileTracking.txt", true);
 				BufferedWriter bw = new BufferedWriter(fw);
 				PrintWriter out = new PrintWriter(bw)) {
@@ -293,73 +309,40 @@ public class DownloadUI extends Stage {
 		}
 	}
 
-	public void handleDownload() {
+	public void handleDownload(Stage owner) {
 		new Thread(() -> {
-			List<String> downloadingFile = listFileDownloading(new ArrayList<>(downloadItems));
-			if (!downloadingFile.isEmpty()) {
-				System.out.println("List Downloading:");
-				for (String i : downloadingFile) {
-					new Thread(() -> {
-						try {
-							String[] parts = i.split(",");
-							String url = parts[0];
-							String path = parts[1];
-
-							String fileName = (url.endsWith(".torrent")) ? FileHandle.getFileNameTorrent(url, path)
-									: HttpConnection.getFileNameFromConnectHttp(url);
-							String result = fileName + ", " + path;
-							mainUI.listFileDownloadingGlobal.add(result);
+			try {
+				List<UIObjectGeneral> downloadFiles = convertDownloadItemToUIObjectGeneral(downloadItems);
+				if (!downloadFiles.isEmpty()) {
+					String date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+					for (UIObjectGeneral i : downloadFiles) {
+						boolean checkTypeFile = i.getUrl().endsWith(".torrent");
+						String fileName = (checkTypeFile) ? FileHandle.getFileNameTorrent(i.getUrl(), i.getPath())
+								: HttpConnection.getFileNameFromConnectHttp(i.getUrl());
+						long fileSize = (checkTypeFile) ? FileHandle.getFileSizeTorrent(i.getUrl(), i.getPath())
+								: HttpConnection.getFileSizeFromConnectHttp(i.getUrl());
+						i.setFileName(fileName);
+						i.setFileSize(FileHandle.formatFileSize(fileSize));
+						i.setDate(date);
+						if (!i.isSelected()) {
+							System.out.println("Cho tai o if");
+							saveFileWaitingToTxt(fileName, fileSize, i.getPath());
 							mainUI.addDataToMainTable();
-
-							DownloadObject downloadObj = new DownloadObject(url, path);
-							System.out.println("View Dang tai: " + url + ", " + path);
-							downloadObj.start();
-						} catch (Exception ex) {
-							ex.printStackTrace();
+						} else {
+							System.out.println("Dang tai o else");
+							i.setStatus("Đang tải");
+							new Thread(() -> {
+								mainUI.listFileDownloadingGlobal.add(i);
+								mainUI.addDataToMainTable();
+								i.start();
+							}).start();
 						}
-					}).start();
-				}
-			} else {
-				System.out.println("List Downloading rong");
-			}
-
-			List<String> waitingFile = listFileWaiting(new ArrayList<>(downloadItems));
-			if (!waitingFile.isEmpty()) {
-				System.out.println("List Waiting:");
-				for (String i : waitingFile) {
-					String[] parts = i.split(",");
-					String url = parts[0];
-					String path = parts[1];
-					boolean checkTypeFile = url.endsWith(".torrent");
-					if (checkTypeFile) {
-						new Thread(() -> {
-							try {
-								String fileName = FileHandle.getFileNameTorrent(url, path);
-								long fileSize = FileHandle.getFileSizeTorrent(url, path);
-								saveFileWaitingToTxt(fileName, fileSize, path, "N/A");
-								mainUI.addDataToMainTable();
-							} catch (Exception ex) {
-								ex.printStackTrace();
-							}
-						}).start();
-					} else {
-						new Thread(() -> {
-							try {
-								String fileName = HttpConnection.getFileNameFromConnectHttp(url);
-								long fileSize = HttpConnection.getFileSizeFromConnectHttp(url);
-								saveFileWaitingToTxt(fileName, fileSize, path, "N/A");
-								mainUI.addDataToMainTable();
-							} catch (Exception ex) {
-								ex.printStackTrace();
-							}
-						}).start();
 					}
-					System.out.println("View Cho tai: " + url + ", " + path);
 				}
-			} else {
-				System.out.println("List Waiting rong");
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}).start();
 	}
-
 }

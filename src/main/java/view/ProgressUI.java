@@ -19,10 +19,11 @@ public class ProgressUI extends Stage {
 	private double xOffset = 0;
 	private double yOffset = 0;
 
-	private final ProgressBar overallProgressBar;
-	private TextArea progressDetails;
+	private ProgressBar progress;
+	private TextArea textarea;
 
 	private boolean autoScroll = true;
+
 	private final JFXToggleButton autoScrollToggle;
 	private double lastScrollPosition = 0;
 
@@ -59,10 +60,10 @@ public class ProgressUI extends Stage {
 			setY(event.getScreenY() - yOffset);
 		});
 
-		overallProgressBar = new ProgressBar(0);
-		overallProgressBar.setPrefHeight(35);
-		overallProgressBar.setPrefWidth(600);
-		overallProgressBar.setStyle("-fx-accent: #3498db;");
+		progress = new ProgressBar(0);
+		progress.setPrefHeight(35);
+		progress.setPrefWidth(600);
+		progress.setStyle("-fx-accent: #3498db;");
 
 		HBox controlsBox = new HBox(0);
 		controlsBox.setAlignment(Pos.CENTER_RIGHT);
@@ -74,24 +75,24 @@ public class ProgressUI extends Stage {
 		autoScrollToggle.setOnAction(e -> {
 			autoScroll = autoScrollToggle.isSelected();
 			if (!autoScroll) {
-				lastScrollPosition = progressDetails.getScrollTop();
+				lastScrollPosition = textarea.getScrollTop();
 			}
 		});
 		controlsBox.getChildren().add(autoScrollToggle);
 
-		progressDetails = new TextArea();
-		progressDetails.setEditable(false);
-		progressDetails.setPrefHeight(300);
-		progressDetails.setWrapText(true);
-		progressDetails.getStyleClass().add("progress-details");
+		textarea = new TextArea();
+		textarea.setEditable(false);
+		textarea.setPrefHeight(300);
+		textarea.setWrapText(true);
+		textarea.getStyleClass().add("progress-details");
 
-		progressDetails.scrollTopProperty().addListener((obs, oldVal, newVal) -> {
+		textarea.scrollTopProperty().addListener((obs, oldVal, newVal) -> {
 			if (!autoScroll) {
 				lastScrollPosition = newVal.doubleValue();
 			}
 		});
 
-		mainContainer.getChildren().addAll(header, overallProgressBar, controlsBox, progressDetails);
+		mainContainer.getChildren().addAll(header, progress, controlsBox, textarea);
 
 		Scene scene = new Scene(mainContainer);
 		scene.setFill(null);
@@ -106,26 +107,32 @@ public class ProgressUI extends Stage {
 		});
 	}
 
-	private void appendTextWithAutoScroll(String text) {
+	public void updateProgress(double progressValue) {
+		Platform.runLater(() -> {
+			progress.setProgress(progressValue);
+		});
+	}
+
+	public void appendText(String text) {
 		Platform.runLater(() -> {
 			if (!autoScroll)
-				lastScrollPosition = progressDetails.getScrollTop();
-			int caretPosition = progressDetails.getCaretPosition();
-			progressDetails.appendText(text);
-			progressDetails.positionCaret(caretPosition);
+				lastScrollPosition = textarea.getScrollTop();
+			int caretPosition = textarea.getCaretPosition();
+			textarea.appendText(text + "\n");
+			textarea.positionCaret(caretPosition);
 			if (autoScroll)
-				progressDetails.setScrollTop(Double.MAX_VALUE);
+				textarea.setScrollTop(Double.MAX_VALUE);
 			else
-				progressDetails.setScrollTop(lastScrollPosition);
+				textarea.setScrollTop(lastScrollPosition);
 		});
 	}
 
 	private JFXButton createIconButton(MaterialDesignIcon icon, String styleClass) {
-		JFXButton button = new JFXButton(); 
+		JFXButton button = new JFXButton();
 		MaterialDesignIconView iconView = new MaterialDesignIconView(icon);
 		iconView.setSize("16");
 		button.setGraphic(iconView);
-		button.getStyleClass().add(styleClass); 
+		button.getStyleClass().add(styleClass);
 		return button;
 	}
 }

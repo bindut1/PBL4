@@ -6,11 +6,15 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.jfoenix.controls.*; // Thư viện JFoenix để tạo giao diện đẹp hơn
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView; // Thư viện biểu tượng Material Design
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -22,6 +26,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.util.Duration;
 import util.FileHandle;
 import util.HttpConnection;
 
@@ -31,13 +36,15 @@ public class MainUI extends Application {
 	private BorderPane root;
 	private Stage primaryStage;
 
-	public static List<String> listFileDownloadingGlobal = new ArrayList<>();
+	public static List<UIObjectGeneral> listFileDownloadingGlobal = new ArrayList<>();
 	public List<String> listFileWaiting = FileHandle.readFileWaitingFromTxt();
 
 	public DownloadUI objDownLoadUI;
 
 	private TableView<MainTableItem> table;
 	private TreeView<String> treeView;
+
+	public Map<UIObjectGeneral, ProgressUI> progressUIMap = new HashMap<>();
 
 	@Override
 	public void start(Stage primaryStage) {
@@ -148,6 +155,25 @@ public class MainUI extends Application {
 				primaryStage.setMaximized(true);
 			}
 		});
+
+		Timeline progressUpdateTimeline;
+		progressUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(1.5), event -> {
+			listFileDownloadingGlobal.forEach(info -> {
+				ProgressUI objProgressUI = progressUIMap.computeIfAbsent(info, k -> new ProgressUI(primaryStage));
+				info.updateProgressUI(info, objProgressUI);
+			});
+		}));
+		progressUpdateTimeline.setCycleCount(Timeline.INDEFINITE);
+		progressUpdateTimeline.play();
+
+		primaryStage.setOnCloseRequest(event -> {
+			if (progressUpdateTimeline != null) {
+				progressUpdateTimeline.stop();
+			}
+			handleShutdown();
+		});
+		
+		setupTableRowListener();
 	}
 
 	private JFXButton createActionButton(MaterialDesignIcon icon, String text, String size) {
@@ -183,9 +209,14 @@ public class MainUI extends Application {
 			this.table = initializeTable();
 		}
 		table.getItems().clear();
-		System.out.println("Status hien tai: " + selectedCategory);
+		table.setOnMouseClicked(null);
+//		System.out.println("Status hien tai: " + selectedCategory);
 		if (selectedCategory.equals("Đang tải") && listFileDownloadingGlobal != null) {
 			loadTable("Đang tải");
+			// loi khi chua co file nao nhung double click van hien form ProgressUI, do cac
+			// row van ton tai nhung minh khong thay, thay vi an thi hay xoa het cac row ban
+			// dau
+
 		} else if (selectedCategory.equals("Chờ tải") && listFileWaiting != null) {
 			listFileWaiting = FileHandle.readFileWaitingFromTxt();
 			loadTable("Chờ tải");
@@ -195,20 +226,23 @@ public class MainUI extends Application {
 	}
 
 	public void loadTable(String category) {
-		System.out.println("Status ham loadTable: " + category);
+//		System.out.println("Status ham loadTable: " + category);
 		if (table == null) {
 			this.table = initializeTable();
 		}
 		switch (category) {
 		case "Đang tải":
 			if (listFileDownloadingGlobal != null) {
-				for (String i : listFileDownloadingGlobal) {
-					String[] parts = i.split(",");
-					String fileName = parts[0];
-					table.getItems()
-							.add(new MainTableItem(fileName, "Unknown", "Đang tải",
-									new SimpleDateFormat("yyyy-MM-dd").format(new Date()),
-									new SimpleDateFormat("HH:mm:ss").format(new Date())));
+				for (UIObjectGeneral i : listFileDownloadingGlobal) {
+					table.getItems().add(
+							new MainTableItem(i.getFileName(), i.getFileSize(), i.getStatus(), i.getDate(), "N/A"));
+					table.setOnMouseClicked(e -> {
+						if (e.getClickCount() == 2) {
+							ProgressUI objProgressUI = progressUIMap.computeIfAbsent(i,
+									k -> new ProgressUI(primaryStage));
+							objProgressUI.showAndWait();
+						}
+					});
 				}
 			}
 			break;
@@ -218,7 +252,7 @@ public class MainUI extends Application {
 			if (listFileWaiting != null) {
 				for (String i : listFileWaiting) {
 					String[] parts = i.split(",");
-					table.getItems().add(new MainTableItem(parts[0], parts[1], "Chờ tải", parts[3], parts[2]));
+					table.getItems().add(new MainTableItem(parts[0], parts[1], "Chờ tải", "N/A", "N/A"));
 				}
 			}
 			break;
@@ -274,6 +308,41 @@ public class MainUI extends Application {
 		table.getColumns().addAll(nameCol, sizeCol, statusCol, dateCol, timeCol);
 		table.getStyleClass().add("custom-table-view");
 		return table;
+	}
+
+	public void handleShutdown() {
+		listFileDownloadingGlobal.forEach(info -> {
+			if (info.downloaderNotNull())
+				info.downloader.cancel();
+			System.exit(0);
+		});
+	}
+
+	private void setupTableRowListener() {
+		// Thêm listener cho double click
+		table.setRowFactory(tv -> {
+			TableRow<MainTableItem> row = new TableRow<>();
+			row.setOnMouseClicked(event -> {
+				if (event.getClickCount() == 2 && (!row.isEmpty())) {
+					MainTableItem selectedItem = row.getItem();
+
+					// Tìm UIObjectGeneral tương ứng với item được chọn
+					UIObjectGeneral matchingDownload = listFileDownloadingGlobal.stream()
+							.filter(info -> info.getFileName().equals(selectedItem.urlProperty())
+									&& info.getFileSize().equals(selectedItem.sizeProperty()))
+							.findFirst().orElse(null);
+
+					if (matchingDownload != null) {
+						// Lấy ProgressUI tương ứng từ progressUIMap
+						ProgressUI progressUI = progressUIMap.get(matchingDownload);
+						if (progressUI != null) {
+							progressUI.showAndWait();
+						}
+					}
+				}
+			});
+			return row;
+		});
 	}
 
 	public static void main(String[] args) {

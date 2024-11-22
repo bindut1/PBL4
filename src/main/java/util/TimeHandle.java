@@ -9,12 +9,12 @@ public class TimeHandle {
 		seconds %= 60;
 		StringBuilder timeString = new StringBuilder();
 		if (hours > 0) {
-			timeString.append(hours).append(" hours ");
+			timeString.append(hours).append("h");
 		}
 		if (minutes > 0) {
-			timeString.append(minutes).append(" minutes ");
+			timeString.append(minutes).append("m");
 		}
-		timeString.append(String.format("%d seconds", seconds));
+		timeString.append(String.format("%ds", seconds));
 		return timeString.toString().trim();
 	}
 

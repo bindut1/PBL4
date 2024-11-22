@@ -52,5 +52,5 @@ public abstract class AbstractDownloadObject {
 	public String getDetailText() {
 		return this.detailText;
 	}
-
+	
 }

@@ -1,6 +1,5 @@
 package download;
 
-
 import java.io.*;
 import java.net.*;
 
@@ -224,7 +223,7 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 					lock.unlock();
 				}
 				updateOverallProgress(totalBytesDownloaded.get(), fileSize);
-				Thread.sleep(1700);
+				Thread.sleep(2000);
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
 			}
@@ -274,8 +273,9 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 			double segmentProgress = (double) (bytesDownloaded * 100.0) / (segmentSize);
 
 			String detailText = String.format("Segment %d: %s / %s (%.2f%%) - Speed: %s/s - Elapsed: %s\n",
-					segmentNumber + 1, FileHandle.formatFileSize(bytesDownloaded), FileHandle.formatFileSize(segmentSize),
-					segmentProgress, FileHandle.formatFileSize((long) speedInBytesPerSecond), TimeHandle.formatTime(timeElapsed));
+					segmentNumber + 1, FileHandle.formatFileSize(bytesDownloaded),
+					FileHandle.formatFileSize(segmentSize), segmentProgress,
+					FileHandle.formatFileSize((long) speedInBytesPerSecond), TimeHandle.formatTime(timeElapsed));
 			this.detailText += detailText;
 		}
 	}
