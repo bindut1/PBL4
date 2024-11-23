@@ -19,6 +19,7 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 		this.progress = 0;
 		this.startTime = 0;
 		this.runningFlag = false;
+		this.completedFlag = false;
 		this.lock = new ReentrantLock();
 		this.pauseCondition = lock.newCondition();
 		this.executor = Executors.newFixedThreadPool(NUM_SEGMENTS + 1);
@@ -35,6 +36,7 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 			case "http":
 			case "https":
 				this.runningFlag = true;
+				this.completedFlag = false;
 				downloadDirectLink(urlInput, pathInput);
 				break;
 			default:
@@ -238,6 +240,7 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 			}
 			updateOverallProgress(fileSize, fileSize);
 			this.detailText = "Download completed successfully!";
+			this.completedFlag = true;
 		} catch (InterruptedException | ExecutionException e) {
 			this.detailText = "Download failed: " + e.getMessage();
 		} finally {
@@ -293,5 +296,16 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 			}
 		}
 		this.detailText = "Download completed successfully!";
+		this.completedFlag = true;
+	}
+
+	@Override
+	public boolean getCompletedFlag() {
+		return this.completedFlag;
+	}
+
+	@Override
+	public double getStartTime() {
+		return this.startTime;
 	}
 }

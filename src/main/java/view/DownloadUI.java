@@ -47,11 +47,10 @@ import util.HttpConnection;
 
 public class DownloadUI extends Stage {
 
-	private List<UIObjectGeneral> downloads;
-
 	private double xOffset = 0;
 	private double yOffset = 0;
 
+	private List<UIObjectGeneral> downloads;
 	private final ObservableList<DownloadItem> downloadItems = FXCollections.observableArrayList();
 	JFXTreeTableView<DownloadItem> downloadTable;
 
@@ -63,7 +62,6 @@ public class DownloadUI extends Stage {
 	Timeline progressUpdateTimeline;
 
 	public DownloadUI(Stage owner, MainUI mainUI) {
-
 		this.mainUI = mainUI;
 		this.objProgressUI = new ProgressUI(owner);
 		downloads = new ArrayList<>();
@@ -280,53 +278,24 @@ public class DownloadUI extends Stage {
 		return button;
 	}
 
-	public List<UIObjectGeneral> convertDownloadItemToUIObjectGeneral(List<DownloadItem> items) {
-		List<UIObjectGeneral> uiObjectList = new ArrayList<>();
-		if (items == null) {
-			System.out.println("List downloadItems la null");
-		} else {
-			for (DownloadItem item : items) {
-				UIObjectGeneral uiObject = new UIObjectGeneral(item.url.get(), item.savePath.get());
-				uiObject.setUrl(item.url.get());
-				uiObject.setPath(item.savePath.get());
-				uiObject.setSelected(item.selected.get());
-
-				uiObjectList.add(uiObject);
-			}
-		}
-		return uiObjectList;
-	}
-
-	public void saveFileWaitingToTxt(String fileName, long fileSize, String path) {
-		String formattedSize = FileHandle.formatFileSize(fileSize);
-		String logEntry = String.format("%s, %s, %s\n", fileName, formattedSize, path);
-		try (FileWriter fw = new FileWriter("WaitingFileTracking.txt", true);
-				BufferedWriter bw = new BufferedWriter(fw);
-				PrintWriter out = new PrintWriter(bw)) {
-			out.println(logEntry);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
 	public void handleDownload(Stage owner) {
 		new Thread(() -> {
 			try {
-				List<UIObjectGeneral> downloadFiles = convertDownloadItemToUIObjectGeneral(downloadItems);
+				List<UIObjectGeneral> downloadFiles = UIObjectGeneral.convertDownloadItemToUIObjectGeneral(downloadItems);
 				if (!downloadFiles.isEmpty()) {
 					String date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
 					for (UIObjectGeneral i : downloadFiles) {
 						boolean checkTypeFile = i.getUrl().endsWith(".torrent");
 						String fileName = (checkTypeFile) ? FileHandle.getFileNameTorrent(i.getUrl(), i.getPath())
-								: HttpConnection.getFileNameFromConnectHttp(i.getUrl());
+								: FileHandle.getFileNameFromConnectHttp(i.getUrl());
 						long fileSize = (checkTypeFile) ? FileHandle.getFileSizeTorrent(i.getUrl(), i.getPath())
-								: HttpConnection.getFileSizeFromConnectHttp(i.getUrl());
+								: FileHandle.getFileSizeFromConnectHttp(i.getUrl());
 						i.setFileName(fileName);
 						i.setFileSize(FileHandle.formatFileSize(fileSize));
 						i.setDate(date);
 						if (!i.isSelected()) {
 							System.out.println("Cho tai o if");
-							saveFileWaitingToTxt(fileName, fileSize, i.getPath());
+							FileHandle.saveFileWaitingToTxt(fileName, fileSize, i.getPath());
 							mainUI.addDataToMainTable();
 						} else {
 							System.out.println("Dang tai o else");

@@ -1,5 +1,9 @@
 package view;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import download.AbstractDownloadObject;
 import download.DownloadObject;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TableView;
@@ -13,9 +17,19 @@ public class UIObjectGeneral extends DownloadObject {
 	private String status;
 	private String fileSize;
 	private String date;
+	private String time;
 	private double progress;
 	private String textarea;
 	private boolean selected = false;
+	private boolean isSaveToTxt = false;
+
+	public boolean isSaveToTxt() {
+		return isSaveToTxt;
+	}
+
+	public void setSaveToTxt(boolean isSaveToTxt) {
+		this.isSaveToTxt = isSaveToTxt;
+	}
 
 	public UIObjectGeneral(String url, String path) {
 		super(url, path);
@@ -77,11 +91,39 @@ public class UIObjectGeneral extends DownloadObject {
 		this.path = path;
 	}
 
-	public void updateProgressUI(UIObjectGeneral objUIObjectGeneral, ProgressUI progressUI) {
-		if (objUIObjectGeneral.downloaderNotNull() && objUIObjectGeneral.downloader.getRunningFlag()) {
-			progressUI.updateProgress(objUIObjectGeneral.downloader.getProgress());
-			progressUI.appendText(objUIObjectGeneral.downloader.getDetailText());
-		}
+	public boolean isDownloading() {
+		return this.downloader.getCompletedFlag();
+	}
+	
+	public String getTime() {
+		return time;
 	}
 
+	public void setTime(String time) {
+		this.time = time;
+	}
+
+	public void updateProgressUI(ProgressUI progressUI) {
+		if (this.downloaderNotNull() && this.downloader.getRunningFlag()) {
+			progressUI.updateProgress(this.downloader.getProgress());
+			progressUI.appendText(this.downloader.getDetailText());
+		}
+	}
+	
+	public static List<UIObjectGeneral> convertDownloadItemToUIObjectGeneral(List<DownloadItem> items) {
+		List<UIObjectGeneral> uiObjectList = new ArrayList<>();
+		if (items == null) {
+			System.out.println("List downloadItems la null");
+		} else {
+			for (DownloadItem item : items) {
+				UIObjectGeneral uiObject = new UIObjectGeneral(item.url.get(), item.savePath.get());
+				uiObject.setUrl(item.url.get());
+				uiObject.setPath(item.savePath.get());
+				uiObject.setSelected(item.selected.get());
+
+				uiObjectList.add(uiObject);
+			}
+		}
+		return uiObjectList;
+	}
 }

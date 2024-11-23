@@ -19,6 +19,7 @@ public class DownloadTorrent extends AbstractDownloadObject {
 
 	public DownloadTorrent() {
 		this.runningFlag = false;
+		this.completedFlag = false;
 		this.startTime = 0;
 		this.progress = 0;
 		this.detailText = "";
@@ -29,8 +30,10 @@ public class DownloadTorrent extends AbstractDownloadObject {
 	@Override
 	public void start(String urlInput, String path) {
 		this.runningFlag = true;
+		this.completedFlag = false;
 		this.url = urlInput;
 		this.path = path;
+		this.detailText = "Đang chuẩn bị tải";
 		try {
 			excute();
 		} catch (Exception e) {
@@ -105,6 +108,8 @@ public class DownloadTorrent extends AbstractDownloadObject {
 			Thread.sleep(1000);
 		}
 		client.stop();
+		this.detailText = "Tải thành công";
+		this.completedFlag = true;
 	}
 
 	public void updateProgress(double progress, String state, double instantSpeed, double averageSpeed, int peers) {
@@ -113,6 +118,16 @@ public class DownloadTorrent extends AbstractDownloadObject {
 				"Progress: %.2f%% - State: %s - Current Speed: %s/s - Average Speed: %s/s - Peers: %d", progress, state,
 				FileHandle.formatFileSize((long) instantSpeed), FileHandle.formatFileSize((long) averageSpeed), peers);
 		System.out.println(detailText);
+	}
+
+	@Override
+	public boolean getCompletedFlag() {
+		return this.completedFlag;
+	}
+
+	@Override
+	public double getStartTime() {
+		return this.startTime;
 	}
 
 }

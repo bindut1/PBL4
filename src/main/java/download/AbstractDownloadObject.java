@@ -9,10 +9,11 @@ public abstract class AbstractDownloadObject {
 	protected volatile double totalPauseTime;
 	protected volatile double lastPauseTime;
 	protected volatile double startTime;
+	protected volatile boolean completedFlag;
 	protected ExecutorService executor;
-	protected  ReentrantLock lock;
-	protected  Condition pauseCondition;
-	
+	protected ReentrantLock lock;
+	protected Condition pauseCondition;
+
 	protected String url;
 	protected String path;
 
@@ -27,7 +28,11 @@ public abstract class AbstractDownloadObject {
 
 	public abstract void cancel();
 
-	public abstract boolean getRunningFlag();	
+	public abstract boolean getRunningFlag();
+
+	public abstract boolean getCompletedFlag();
+	
+	public abstract double getStartTime();
 
 	public String getUrl() {
 		return url;
@@ -52,5 +57,4 @@ public abstract class AbstractDownloadObject {
 	public String getDetailText() {
 		return this.detailText;
 	}
-	
 }

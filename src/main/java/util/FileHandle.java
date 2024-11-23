@@ -1,11 +1,15 @@
 package util;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.URL;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -88,18 +92,54 @@ public class FileHandle {
 		return client.getTorrent().getSize();
 	}
 	
-	public static List<String> readFileWaitingFromTxt() {
-	    List<String> fileWaiting = new ArrayList<>();
-	    try (BufferedReader reader = new BufferedReader(new FileReader("WaitingFileTracking.txt"))) {
+	public static String getFileNameFromConnectHttp(String urlInput) throws IOException{
+		URL url = new URL(urlInput);
+		HttpURLConnection connection = HttpConnection.openConnection(url);
+		return getFileName(connection, urlInput);
+	}
+	
+	public static long getFileSizeFromConnectHttp(String urlInput) throws IOException{
+		URL url = new URL(urlInput);
+		HttpURLConnection connection = HttpConnection.openConnection(url);
+		return connection.getContentLengthLong();
+	}
+	
+	public static List<String> readFileFromTxt(String txtFileName) {
+	    List<String> listFile = new ArrayList<>();
+	    try (BufferedReader reader = new BufferedReader(new FileReader(txtFileName))) {
 	        String line;
 	        while ((line = reader.readLine()) != null) {
 	            if (!line.trim().isEmpty()) {
-	                fileWaiting.add(line.trim());
+	            	listFile.add(line.trim());
 	            }
 	        }
 	    } catch (IOException e) {
 	        e.printStackTrace();
 	    }
-	    return fileWaiting;
+	    return listFile;
+	}
+	
+	public static void saveFileCompletedToTxt(String fileName, String fileSize, String status, String date, String time,
+			String path) {
+		String logEntry = String.format("%s, %s, %s, %s, %s, %s\n", fileName, fileSize, status, date, time, path);
+		try (FileWriter fw = new FileWriter("CompletedFileTracking.txt", true);
+				BufferedWriter bw = new BufferedWriter(fw);
+				PrintWriter out = new PrintWriter(bw)) {
+			out.println(logEntry);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void saveFileWaitingToTxt(String fileName, long fileSize, String path) {
+		String formattedSize = FileHandle.formatFileSize(fileSize);
+		String logEntry = String.format("%s, %s, %s\n", fileName, formattedSize, path);
+		try (FileWriter fw = new FileWriter("WaitingFileTracking.txt", true);
+				BufferedWriter bw = new BufferedWriter(fw);
+				PrintWriter out = new PrintWriter(bw)) {
+			out.println(logEntry);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }

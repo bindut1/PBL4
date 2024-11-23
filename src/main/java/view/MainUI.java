@@ -1,8 +1,11 @@
 package view;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -29,6 +32,7 @@ import javafx.stage.StageStyle;
 import javafx.util.Duration;
 import util.FileHandle;
 import util.HttpConnection;
+import util.TimeHandle;
 
 public class MainUI extends Application {
 	private double xOffset = 0;
@@ -36,11 +40,12 @@ public class MainUI extends Application {
 	private BorderPane root;
 	private Stage primaryStage;
 
+	//Thao tac tren 3 list tuong ung voi 3 trang thai
 	public static List<UIObjectGeneral> listFileDownloadingGlobal = new ArrayList<>();
-	public List<String> listFileWaiting = FileHandle.readFileWaitingFromTxt();
+	public List<String> listFileWaiting = FileHandle.readFileFromTxt("WaitingFileTracking.txt");
+	public List<String> listFileCompleted = FileHandle.readFileFromTxt("CompletedFileTracking.txt");
 
 	public DownloadUI objDownLoadUI;
-
 	private TableView<MainTableItem> table;
 	private TreeView<String> treeView;
 
@@ -132,6 +137,8 @@ public class MainUI extends Application {
 
 		this.treeView = initializeTreeView();
 		this.table = initializeTable();
+		loadTable("Đã tải");
+		setupTableRowListener();
 
 		VBox topContainer = new VBox(menuToolbar, toolBarContainer);
 
@@ -156,11 +163,24 @@ public class MainUI extends Application {
 			}
 		});
 
+		//Xu ly cap nhat tien do lien tuc
 		Timeline progressUpdateTimeline;
 		progressUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(1.5), event -> {
 			listFileDownloadingGlobal.forEach(info -> {
 				ProgressUI objProgressUI = progressUIMap.computeIfAbsent(info, k -> new ProgressUI(primaryStage));
-				info.updateProgressUI(info, objProgressUI);
+				info.updateProgressUI(objProgressUI);
+				if (info.downloader.getCompletedFlag()) {
+					addDataToMainTable();
+					//Luu file da tai thanh cong vao txt
+					if (!info.isSaveToTxt()) {
+						String time = String.valueOf(TimeHandle
+								.formatTime((System.nanoTime() - info.downloader.getStartTime()) / 1_000_000_000.0));
+						info.setStatus("Đã tải");
+						FileHandle.saveFileCompletedToTxt(info.getFileName(), info.getFileSize(), info.getStatus(), info.getDate(),
+								time, info.getPath());
+						info.setSaveToTxt(true);
+					}
+				}
 			});
 		}));
 		progressUpdateTimeline.setCycleCount(Timeline.INDEFINITE);
@@ -172,8 +192,6 @@ public class MainUI extends Application {
 			}
 			handleShutdown();
 		});
-		
-		setupTableRowListener();
 	}
 
 	private JFXButton createActionButton(MaterialDesignIcon icon, String text, String size) {
@@ -204,21 +222,15 @@ public class MainUI extends Application {
 
 	public void addDataToMainTable() {
 		String selectedCategory = treeView != null ? treeView.getSelectionModel().getSelectedItem().getValue()
-				: "Chờ tải";
+				: "Đã tải";
 		if (table == null) {
 			this.table = initializeTable();
 		}
 		table.getItems().clear();
-		table.setOnMouseClicked(null);
 //		System.out.println("Status hien tai: " + selectedCategory);
 		if (selectedCategory.equals("Đang tải") && listFileDownloadingGlobal != null) {
 			loadTable("Đang tải");
-			// loi khi chua co file nao nhung double click van hien form ProgressUI, do cac
-			// row van ton tai nhung minh khong thay, thay vi an thi hay xoa het cac row ban
-			// dau
-
 		} else if (selectedCategory.equals("Chờ tải") && listFileWaiting != null) {
-			listFileWaiting = FileHandle.readFileWaitingFromTxt();
 			loadTable("Chờ tải");
 		} else if (selectedCategory.equals("Đã tải")) {
 			loadTable("Đã tải");
@@ -226,29 +238,24 @@ public class MainUI extends Application {
 	}
 
 	public void loadTable(String category) {
-//		System.out.println("Status ham loadTable: " + category);
 		if (table == null) {
 			this.table = initializeTable();
+			setupTableRowListener();
 		}
 		switch (category) {
 		case "Đang tải":
 			if (listFileDownloadingGlobal != null) {
 				for (UIObjectGeneral i : listFileDownloadingGlobal) {
-					table.getItems().add(
-							new MainTableItem(i.getFileName(), i.getFileSize(), i.getStatus(), i.getDate(), "N/A"));
-					table.setOnMouseClicked(e -> {
-						if (e.getClickCount() == 2) {
-							ProgressUI objProgressUI = progressUIMap.computeIfAbsent(i,
-									k -> new ProgressUI(primaryStage));
-							objProgressUI.showAndWait();
-						}
-					});
+					if (!i.downloader.getCompletedFlag()) {
+						table.getItems().add(
+								new MainTableItem(i.getFileName(), i.getFileSize(), i.getStatus(), i.getDate(), "N/A"));
+					}
 				}
 			}
 			break;
 
 		case "Chờ tải":
-			listFileWaiting = FileHandle.readFileWaitingFromTxt();
+			listFileWaiting = FileHandle.readFileFromTxt("WaitingFileTracking.txt");
 			if (listFileWaiting != null) {
 				for (String i : listFileWaiting) {
 					String[] parts = i.split(",");
@@ -258,6 +265,13 @@ public class MainUI extends Application {
 			break;
 
 		case "Đã tải":
+			listFileCompleted = FileHandle.readFileFromTxt("CompletedFileTracking.txt");
+			if (listFileCompleted != null) {
+				for (String i : listFileCompleted) {
+					String[] parts = i.split(",");
+					table.getItems().add(new MainTableItem(parts[0], parts[1], parts[2], parts[3], parts[4]));
+				}
+			}
 			break;
 
 		default:
@@ -318,26 +332,41 @@ public class MainUI extends Application {
 		});
 	}
 
+	//Lay item khi double click vao table cua giao dien
 	private void setupTableRowListener() {
-		// Thêm listener cho double click
 		table.setRowFactory(tv -> {
 			TableRow<MainTableItem> row = new TableRow<>();
 			row.setOnMouseClicked(event -> {
 				if (event.getClickCount() == 2 && (!row.isEmpty())) {
 					MainTableItem selectedItem = row.getItem();
+					String selectedFileName = String.valueOf(selectedItem.urlProperty().getValue());
+					String selectedFileSize = String.valueOf(selectedItem.sizeProperty().getValue());
 
-					// Tìm UIObjectGeneral tương ứng với item được chọn
-					UIObjectGeneral matchingDownload = listFileDownloadingGlobal.stream()
-							.filter(info -> info.getFileName().equals(selectedItem.urlProperty())
-									&& info.getFileSize().equals(selectedItem.sizeProperty()))
-							.findFirst().orElse(null);
+//					System.out.println("Double clicked on: " + selectedFileName + " - Size: " + selectedFileSize);
+//					System.out.println("List file Dang tai: ");
+//					for (UIObjectGeneral info : listFileDownloadingGlobal) {
+//						System.out.println("File: " + info.getFileName() + " - Size: " + info.getFileSize());
+//					}
 
-					if (matchingDownload != null) {
-						// Lấy ProgressUI tương ứng từ progressUIMap
-						ProgressUI progressUI = progressUIMap.get(matchingDownload);
-						if (progressUI != null) {
-							progressUI.showAndWait();
+					UIObjectGeneral fileSelected = null;
+					for (UIObjectGeneral info : listFileDownloadingGlobal) {
+						if (info.getFileName().equals(selectedFileName)
+								&& info.getFileSize().equals(selectedFileSize)) {
+							fileSelected = info;
+							System.out.println("Tim thay matchingDownload");
+							break;
 						}
+					}
+
+					if (fileSelected != null) {
+						final UIObjectGeneral finalFileSelected = fileSelected;
+						ProgressUI objProgressUI = progressUIMap.computeIfAbsent(finalFileSelected, k -> {
+							System.out.println("Creating new ProgressUI");
+							return new ProgressUI(primaryStage);
+						});
+						objProgressUI.showAndWait();
+					} else {
+						System.out.println("KO tim thay matchingDownload");
 					}
 				}
 			});

@@ -42,16 +42,4 @@ public class HttpConnection {
 		return connection;
 	}
 	
-	public static String getFileNameFromConnectHttp(String urlInput) throws IOException{
-		URL url = new URL(urlInput);
-		HttpURLConnection connection = HttpConnection.openConnection(url);
-		return FileHandle.getFileName(connection, urlInput);
-	}
-	
-	public static long getFileSizeFromConnectHttp(String urlInput) throws IOException{
-		URL url = new URL(urlInput);
-		HttpURLConnection connection = HttpConnection.openConnection(url);
-		return connection.getContentLengthLong();
-	}
-
 }

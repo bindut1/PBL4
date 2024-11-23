@@ -11,6 +11,10 @@ public class DownloadObject {
 	public DownloadObject(String url, String path) {
 		this.urlInput = url;
 		this.path = path;
+		if (urlInput.endsWith(".torrent"))
+			this.downloader = new DownloadTorrent();
+		else
+			this.downloader = new DownloadDirectLink();
 	}
 
 	public boolean downloaderNotNull() {
@@ -21,10 +25,6 @@ public class DownloadObject {
 	}
 
 	public void start() {
-		if (urlInput.endsWith(".torrent"))
-			this.downloader = new DownloadTorrent();
-		else
-			this.downloader = new DownloadDirectLink();
 		this.downloader.start(this.urlInput, this.path);
 	}
 
