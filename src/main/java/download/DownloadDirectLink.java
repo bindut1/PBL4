@@ -288,7 +288,7 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 		this.detailText = "Kích thước file không xác định, hệ thống sẽ thực hiện tải thông thường!";
 		this.detailText = ("Vui lòng đợi giây lát . . .");
 		try (InputStream in = connection.getInputStream(); FileOutputStream out = new FileOutputStream(outputFile)) {
-			byte[] buffer = new byte[8192];
+			byte[] buffer = new byte[25600];
 			int bytesRead;
 			while ((bytesRead = in.read(buffer)) != -1) {
 				out.write(buffer, 0, bytesRead);

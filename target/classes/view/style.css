@@ -87,6 +87,7 @@
 .custom-tree-view .tree-cell:selected {
     -fx-background-color: #3498db;
     -fx-text-fill: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 2);
 }
 
 .custom-tree-view .tree-cell {
@@ -107,32 +108,13 @@
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 2);
 }
 
-/* .custom-table-view .column-header {
-    -fx-background-color: #f8f9fa;
-    -fx-padding: 20px 0px 20px 0px;
-    -fx-margin: -20px 0px -20px 0px;
-}
 
-.custom-table-view .column-header-background {
-    -fx-background-color: #f8f9fa;
-}
-
-.custom-table-view .column-header .label {
-    -fx-text-fill: #2c3e50;
-    -fx-font-weight: bold;
-}
-
-.custom-table-view .table-row-cell {
-    -fx-background-color: white;
-    -fx-border-color: transparent transparent #ecf0f1 transparent;
-} */
-
-.custom-table-view .table-row-cell:selected {
-    -fx-background-color: #e8f4fc;
+.custom-table-view .table-row-cell:selected .table-cell {
+    -fx-text-fill: black;
 }
 
 .custom-table-view .table-row-cell:hover {
-    -fx-background-color: #f8f9fa; /* Màu nền khi hover */
+    -fx-background-color: #e0e0e0; /* Màu nền khi hover */
 }
 
 .footer-button-box {
@@ -177,9 +159,10 @@
 
 /* Style cho các cell trong table */
 .custom-table-view .table-cell {
-    -fx-padding: 5 5 5 5;
-    -fx-border-width: 0 1 0 0;  /* Đường kẻ bên phải của mỗi cell */
-    -fx-border-color: #ddd;
+    -fx-padding: 8 5 8 5;
+    
+   /*  -fx-border-width: 0 1 0 0;  */ /* Đường kẻ bên phải của mỗi cell */
+/*     -fx-border-color: #ddd; */
 }
 
 /* Loại bỏ border cuối cùng của header */
@@ -187,4 +170,34 @@
     -fx-border-width: 0 0 1 0;
 }
 
+/* Style cho hover - chỉ áp dụng khi row không được chọn */
+.custom-table-view .table-row-cell:hover:not(:selected) {
+    -fx-background-color: #f8f9fa;
+}
+
+/* Style cho row được chọn */
+.custom-table-view .table-row-cell:selected {
+    -fx-background-color: #3498db !important; /* Màu đỏ */
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 2);
+}
+
+/* Style cho các cell trong row được chọn */
+.custom-table-view .table-row-cell:selected .table-cell {
+    -fx-text-fill: white; /* Đổi màu chữ thành trắng để dễ đọc trên nền đỏ */
+}
+
+.custom-table-view .table-row-cell {
+    -fx-background-color: white; /* Đặt nền trắng cho tất cả các row */
+   /*  -fx-padding: 5 4 5 4; */ /* Khoảng cách bên trong các ô */
+}
+
+/* Chỉ áp dụng hover khi row có dữ liệu */
+.custom-table-view .table-row-cell:empty:hover {
+    -fx-background-color: transparent; /* Không áp dụng màu nền */
+}
+
+/* Loại bỏ hiệu ứng hover cho các row rỗng */
+.custom-table-view .table-row-cell:empty {
+    -fx-background-color: transparent;
+}
 

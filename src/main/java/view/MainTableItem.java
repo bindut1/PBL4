@@ -36,4 +36,8 @@ public class MainTableItem {
 	public SimpleStringProperty timeProperty() {
 		return time;
 	}
+	
+	public void setStatus(String newStatus) {
+        this.status.set(newStatus);
+    }
 }
