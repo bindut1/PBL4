@@ -139,8 +139,14 @@ public class MainUI extends Application {
 		JFXButton btnSchedule = createActionButton(MaterialDesignIcon.CLOCK, "Lập lịch", "16");
 		btnSchedule.setPrefSize(buttonWidth, buttonHeight);
 		btnSchedule.setOnAction(e -> {
-			ScheduleUI objScheduleUI = new ScheduleUI(primaryStage);
-			objScheduleUI.showAndWait();
+//			ScheduleUI objScheduleUI = new ScheduleUI(primaryStage);
+//			objScheduleUI.showAndWait();
+			
+//			AlertUI obj = new AlertUI(primaryStage, "Thông báo", "Lỗi file");
+//			obj.showAndWait();
+			
+			PromptUI obj = new PromptUI(primaryStage, "Thông báo khẩn", "File xyz đã được tải. Bạn có muốn tải lại không?");
+			obj.showAndWait();
 		});
 
 		buttonBox.getChildren().addAll(btnAddPath);

@@ -124,3 +124,22 @@ HBox {
 	-fx-font-size: 14px;
 	-fx-pref-height: 40px;
 }
+
+/* Cập nhật style cho các nút */
+.yes-button {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+}
+
+.yes-button:hover {
+    -fx-background-color: #2980b9;
+}
+
+.no-button {
+    -fx-background-color: #e7e7e7;
+    -fx-text-fill: black;
+}
+
+.no-button:hover {
+    -fx-background-color: #ecf0f1;
+}

@@ -95,7 +95,7 @@ public class DownloadTorrent extends AbstractDownloadObject {
             downloadDir.mkdirs();
         }
 
-        // Khởi tạo session với settings
+        // Initialize session with settings
         sessionManager = new SessionManager();
         
         SettingsPack settingsPack = new SettingsPack();
@@ -104,21 +104,22 @@ public class DownloadTorrent extends AbstractDownloadObject {
         settingsPack.setInteger(settings_pack.int_types.upload_rate_limit.swigValue(), TORRENT_UPLOAD_RATE_LIMIT);
         settingsPack.setInteger(settings_pack.int_types.download_rate_limit.swigValue(), TORRENT_DOWNLOAD_RATE_LIMIT);
         
-        // Tạo SessionParams từ SettingsPack
         SessionParams params = new SessionParams(settingsPack);
         sessionManager.start(params);
 
-        // Thêm torrent vào session
+        // Add torrent to session
         TorrentInfo ti = new TorrentInfo(torrentFile);
         
-        // Tạo add params cho torrent
-        Priority[] priorities = Priority.array(Priority.NORMAL, ti.numPieces());
-//        AddTorrentParams addTorrentParams = AddTorrentParams.createInstance(ti, downloadDir, priorities, null);
+        // Use the simplified download method
+//        torrentHandle = sessionManager.download(ti, downloadDir);
         
-        // Add torrent và lấy handle
-//        torrentHandle = sessionManager.addTorrent(addTorrentParams);
+        // Set the priority after getting the handle
+        if (torrentHandle != null) {
+            Priority[] priorities = Priority.array(Priority.NORMAL, ti.numPieces());
+//            torrentHandle.prioritize(priorities);
+        }
 
-        // Theo dõi tiến trình tải
+        // Monitor download progress
         sessionManager.addListener(new AlertListener() {
             @Override
             public int[] types() {
@@ -144,7 +145,7 @@ public class DownloadTorrent extends AbstractDownloadObject {
             }
         });
 
-        // Đợi cho đến khi tải xong
+        // Wait until download is complete
         signal.await();
         sessionManager.stop();
     }
