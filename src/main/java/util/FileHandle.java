@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
 
 import org.apache.tika.Tika;
 
+import com.google.common.io.Files;
 import com.turn.ttorrent.client.Client;
 import com.turn.ttorrent.client.SharedTorrent;
 
@@ -91,34 +92,34 @@ public class FileHandle {
 		Client client = new Client(InetAddress.getLocalHost(), torrent);
 		return client.getTorrent().getSize();
 	}
-	
-	public static String getFileNameFromConnectHttp(String urlInput) throws IOException{
+
+	public static String getFileNameFromConnectHttp(String urlInput) throws IOException {
 		URL url = new URL(urlInput);
 		HttpURLConnection connection = HttpConnection.openConnection(url);
 		return getFileName(connection, urlInput);
 	}
-	
-	public static long getFileSizeFromConnectHttp(String urlInput) throws IOException{
+
+	public static long getFileSizeFromConnectHttp(String urlInput) throws IOException {
 		URL url = new URL(urlInput);
 		HttpURLConnection connection = HttpConnection.openConnection(url);
 		return connection.getContentLengthLong();
 	}
-	
+
 	public static List<String> readFileFromTxt(String txtFileName) {
-	    List<String> listFile = new ArrayList<>();
-	    try (BufferedReader reader = new BufferedReader(new FileReader(txtFileName))) {
-	        String line;
-	        while ((line = reader.readLine()) != null) {
-	            if (!line.trim().isEmpty()) {
-	            	listFile.add(line.trim());
-	            }
-	        }
-	    } catch (IOException e) {
-	        e.printStackTrace();
-	    }
-	    return listFile;
+		List<String> listFile = new ArrayList<>();
+		try (BufferedReader reader = new BufferedReader(new FileReader(txtFileName))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				if (!line.trim().isEmpty()) {
+					listFile.add(line.trim());
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return listFile;
 	}
-	
+
 	public static void saveFileCompletedToTxt(String fileName, String fileSize, String status, String date, String time,
 			String path) {
 		String logEntry = String.format("%s, %s, %s, %s, %s, %s\n", fileName, fileSize, status, date, time, path);
@@ -130,7 +131,7 @@ public class FileHandle {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public static void saveFileWaitingToTxt(String fileName, long fileSize, String path) {
 		String formattedSize = FileHandle.formatFileSize(fileSize);
 		String logEntry = String.format("%s, %s, %s\n", fileName, formattedSize, path);
@@ -142,4 +143,49 @@ public class FileHandle {
 			e.printStackTrace();
 		}
 	}
+
+	public static boolean deleteLineFromTxtFile(String fileName, String lineToDelete) {
+        File inputFile = new File(fileName);
+        File tempFile = new File("temp.txt");
+        boolean found = false;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+             BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+
+            String currentLine;
+
+            // Đọc từng dòng từ file gốc
+            while ((currentLine = reader.readLine()) != null) {
+                // So sánh dòng hiện tại với dòng cần xóa
+                if (currentLine.trim().equals(lineToDelete.trim())) {
+                    found = true;
+                    continue; // Bỏ qua dòng này (không ghi vào file tạm)
+                }
+                // Ghi các dòng khác vào file tạm
+                writer.write(currentLine);
+                writer.newLine();
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        // Nếu không tìm thấy dòng cần xóa
+        if (!found) {
+            tempFile.delete();
+            return false;
+        }
+
+        // Xóa file gốc và đổi tên file tạm thành file gốc
+        if (!inputFile.delete()) {
+            tempFile.delete();
+            return false;
+        }
+        if (!tempFile.renameTo(inputFile)) {
+            return false;
+        }
+
+        return true;
+    }
 }

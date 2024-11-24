@@ -33,7 +33,7 @@ public abstract class AbstractDownloadObject {
 	public abstract boolean getCompletedFlag();
 	
 	public abstract double getStartTime();
-
+	
 	public String getUrl() {
 		return url;
 	}

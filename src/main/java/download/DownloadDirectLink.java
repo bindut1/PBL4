@@ -52,7 +52,9 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 
 	public void cancel() {
 		try {
+			this.detailText = "Đã hủy tải";
 			this.runningFlag = false;
+			this.completedFlag = false;
 			if (executor != null)
 				executor.shutdownNow();
 		} catch (Exception e) {
@@ -61,11 +63,13 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 	}
 
 	public void pause() {
+		this.detailText = "Đã tạm dừng tải";
 		this.lastPauseTime = TimeHandle.getCurrentTime();
 		this.runningFlag = false;
 	}
 
 	public void resume() {
+		this.detailText = "Đang tiếp tục tải";
 		this.totalPauseTime += TimeHandle.getCurrentTime() - this.lastPauseTime;
 		this.runningFlag = true;
 		lock.lock();
@@ -122,7 +126,8 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 			}
 
 			executor.submit(() -> monitorObserver(totalBytesDownloaded, fileSize));
-			completeDownload(futures, fileSize);
+			if (!this.completedFlag && this.runningFlag)
+				completeDownload(futures, fileSize);
 		} else {
 			// tải thông thường nếu không cho phép tải phân đoạn
 			performSingleThreadDownload(connection, outputFile, totalBytesDownloaded);
@@ -308,4 +313,5 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 	public double getStartTime() {
 		return this.startTime;
 	}
+
 }

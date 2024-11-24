@@ -111,12 +111,30 @@ public class MainUI extends Application {
 
 		JFXButton btnResume = createActionButton(MaterialDesignIcon.PLAY, "Tiếp tục", "16");
 		btnResume.setPrefSize(buttonWidth, buttonHeight);
+		btnResume.setOnAction(e -> {
+			ObservableList<MainTableItem> selectedItems = FXCollections
+					.observableArrayList(table.getSelectionModel().getSelectedItems());
+			resumeHandle(selectedItems);
+		});
 
 		JFXButton btnPause = createActionButton(MaterialDesignIcon.PAUSE, "Dừng", "16");
 		btnPause.setPrefSize(buttonWidth, buttonHeight);
+		btnPause.setOnAction(e -> {
+			ObservableList<MainTableItem> selectedItems = FXCollections
+					.observableArrayList(table.getSelectionModel().getSelectedItems());
+			pauseHandle(selectedItems);
+		});
 
 		JFXButton btnDelete = createActionButton(MaterialDesignIcon.DELETE, "Xóa", "16");
 		btnDelete.setPrefSize(buttonWidth, buttonHeight);
+		btnDelete.setOnAction(e -> {
+			// dang loi cai xoa file dang tai nhung van ghi vo file txt, completedFlag bi
+			// loi nao do(chua fix)
+			// hien tai chua truc tiep xoa file trong path
+			ObservableList<MainTableItem> selectedItems = FXCollections
+					.observableArrayList(table.getSelectionModel().getSelectedItems());
+			deletedHandle(selectedItems);
+		});
 
 		JFXButton btnSchedule = createActionButton(MaterialDesignIcon.CLOCK, "Lập lịch", "16");
 		btnSchedule.setPrefSize(buttonWidth, buttonHeight);
@@ -179,8 +197,8 @@ public class MainUI extends Application {
 					updateTableRow(info.getFileName(), info.getFileSize(), status);
 				} else {
 					if (!info.isSaveToTxt()) {
-						String time = String.valueOf(TimeHandle
-								.formatTime((System.currentTimeMillis() - info.downloader.getStartTime())));
+						String time = String.valueOf(
+								TimeHandle.formatTime((System.currentTimeMillis() - info.downloader.getStartTime())));
 						info.setStatus("Đã tải");
 						FileHandle.saveFileCompletedToTxt(info.getFileName(), info.getFileSize(), info.getStatus(),
 								info.getDate(), time, info.getPath());
@@ -309,6 +327,8 @@ public class MainUI extends Application {
 		TableView<MainTableItem> table = new TableView<>();
 		table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
+		table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+
 		TableColumn<MainTableItem, String> nameCol = new TableColumn<>("Tên tệp");
 		TableColumn<MainTableItem, String> sizeCol = new TableColumn<>("Kích thước");
 		TableColumn<MainTableItem, String> statusCol = new TableColumn<>("Trạng thái");
@@ -340,77 +360,76 @@ public class MainUI extends Application {
 		});
 	}
 
-	//ham xu ly khi double click
+	// ham xu ly khi double click
 	private void setupTableRowListener() {
-	    table.setRowFactory(tv -> {
-	        TableRow<MainTableItem> row = new TableRow<>();
-	        row.setOnMouseClicked(event -> {
-	            if (event.getClickCount() == 2 && (!row.isEmpty())) {
-	                MainTableItem selectedItem = row.getItem();
-	                String selectedFileName = String.valueOf(selectedItem.urlProperty().getValue());
-	                String selectedFileSize = String.valueOf(selectedItem.sizeProperty().getValue());
-	                String selectedStatus = String.valueOf(selectedItem.statusProperty().getValue());
-	                
-	                UIObjectGeneral fileSelected = null;
-	                for (UIObjectGeneral info : listFileDownloadingGlobal) {
-	                    if (info.getFileName().equals(selectedFileName) 
-	                        && info.getFileSize().equals(selectedFileSize)) {
-	                        fileSelected = info;
-	                        break;
-	                    }
-	                }
+		table.setRowFactory(tv -> {
+			TableRow<MainTableItem> row = new TableRow<>();
+			row.setOnMouseClicked(event -> {
+				if (event.getClickCount() == 2 && (!row.isEmpty())) {
+					MainTableItem selectedItem = row.getItem();
+					String selectedFileName = String.valueOf(selectedItem.urlProperty().getValue());
+					String selectedFileSize = String.valueOf(selectedItem.sizeProperty().getValue());
+					String selectedStatus = String.valueOf(selectedItem.statusProperty().getValue());
 
-	                if (fileSelected != null) {
-	                    final UIObjectGeneral finalFileSelected = fileSelected;
-	                    ProgressUI objProgressUI = progressUIMap.computeIfAbsent(finalFileSelected, k -> {
-	                        return new ProgressUI(primaryStage);
-	                    });
-	                    objProgressUI.showAndWait();
-	                } else {
-	                    String filePath = "";
-	                    if (selectedStatus.trim().equals("Đã tải")) {
-	                        if (listFileCompleted != null) {
-	                            for (String completedFile : listFileCompleted) {
-	                                String[] parts = completedFile.split(",");
-	                                //check ten file trung thi + 1 chu ko cho ni sai
-	                                if (parts[0].equals(selectedFileName)) {
-	                                    filePath = parts[5];
-	                                    break;
-	                                }
-	                            }
-	                        }
-	                    }
-	                    else if (selectedStatus.trim().equals("Chờ tải")) {
-	                        for (String waitingFile : listFileWaiting) {
-	                            String[] parts = waitingFile.split(",");
-	                            if (parts[0].equals(selectedFileName)) {
-	                                filePath = parts[2];
-	                                break;
-	                            }
-	                        }
-	                    }
-	                    
-	                    if (!filePath.isEmpty()) {
-	                        try {
-	                            File file = new File(filePath.trim());
-	                            System.out.println("path ne: " + file);
-	                            if (file.exists()) {
-	                                Desktop.getDesktop().open(file);
-	                            } else {
-	                                System.out.println("File does not exist!");
-	                            }
-	                        } catch (IOException e) {
-	                            e.printStackTrace();
-	                            System.out.println("loi khi co gang mo file");
-	                        }
-	                    } else {
-	                        System.out.println("No file path found!");
-	                    }
-	                }
-	            }
-	        });
-	        return row;
-	    });
+					UIObjectGeneral fileSelected = null;
+					for (UIObjectGeneral info : listFileDownloadingGlobal) {
+						if (info.getFileName().equals(selectedFileName)
+								&& info.getFileSize().equals(selectedFileSize)) {
+							fileSelected = info;
+							break;
+						}
+					}
+
+					if (fileSelected != null) {
+						final UIObjectGeneral finalFileSelected = fileSelected;
+						ProgressUI objProgressUI = progressUIMap.computeIfAbsent(finalFileSelected, k -> {
+							return new ProgressUI(primaryStage);
+						});
+						objProgressUI.showAndWait();
+					} else {
+						String filePath = "";
+						if (selectedStatus.trim().equals("Đã tải")) {
+							if (listFileCompleted != null) {
+								for (String completedFile : listFileCompleted) {
+									String[] parts = completedFile.split(",");
+									// check ten file trung thi + 1 chu ko cho ni sai
+									if (parts[0].equals(selectedFileName)) {
+										filePath = parts[5];
+										break;
+									}
+								}
+							}
+						} else if (selectedStatus.trim().equals("Chờ tải")) {
+							for (String waitingFile : listFileWaiting) {
+								String[] parts = waitingFile.split(",");
+								if (parts[0].equals(selectedFileName)) {
+									filePath = parts[2];
+									break;
+								}
+							}
+						}
+
+						if (!filePath.isEmpty()) {
+							try {
+								File file = new File(filePath.trim());
+								System.out.println("path ne: " + file);
+								if (file.exists()) {
+									Desktop.getDesktop().open(file);
+								} else {
+									System.out.println("File does not exist!");
+								}
+							} catch (IOException e) {
+								e.printStackTrace();
+								System.out.println("loi khi co gang mo file");
+							}
+						} else {
+							System.out.println("No file path found!");
+						}
+					}
+				}
+			});
+			return row;
+		});
 	}
 
 	// ham de cap nhat lien tuc % cua file dang tai
@@ -423,6 +442,84 @@ public class MainUI extends Application {
 				break;
 			}
 		}
+	}
+
+	public void checkFileSelected(ObservableList<MainTableItem> selectedItems, String txt) {
+		if (selectedItems.isEmpty()) {
+			System.out.println("Chon it nhat 1 file de " + txt);
+			return;
+		}
+
+		boolean checkInvalidFile = false;
+		for (MainTableItem item : selectedItems) {
+			if (!item.statusProperty().getValue().contains("Đang tải")) {
+				checkInvalidFile = true;
+				break;
+			}
+		}
+
+		if (checkInvalidFile) {
+			System.out.println("Chi co the " + txt + " cac file o trang thai Dang tai");
+			return;
+		}
+	}
+
+	public void pauseHandle(ObservableList<MainTableItem> selectedItems) {
+		checkFileSelected(selectedItems, "tam dung");
+		for (MainTableItem item : selectedItems) {
+			String fileName = item.urlProperty().getValue();
+			for (UIObjectGeneral info : listFileDownloadingGlobal) {
+				if (info.getFileName().equals(fileName) && info.downloaderNotNull()
+						&& info.downloader.getRunningFlag()) {
+					info.downloader.pause();
+				}
+			}
+		}
+	}
+
+	public void resumeHandle(ObservableList<MainTableItem> selectedItems) {
+		checkFileSelected(selectedItems, "tiep tuc");
+		for (MainTableItem item : selectedItems) {
+			String fileName = item.urlProperty().getValue();
+			for (UIObjectGeneral info : listFileDownloadingGlobal) {
+				if (info.getFileName().equals(fileName) && info.downloaderNotNull()
+						&& !info.downloader.getRunningFlag()) {
+					info.downloader.resume();
+				}
+			}
+		}
+	}
+
+	public void deletedHandle(ObservableList<MainTableItem> selectedItems) {
+		if (selectedItems.isEmpty()) {
+			System.out.println("Chon it nhat 1 file de xoa");
+			return;
+		}
+
+		for (MainTableItem item : selectedItems) {
+			String fileName = item.urlProperty().getValue();
+			String status = item.statusProperty().getValue();
+
+			if (status.contains("Đang tải")) {
+				listFileDownloadingGlobal.stream().filter(info -> info.getFileName().equals(fileName)
+						&& info.downloaderNotNull() && info.downloader.getRunningFlag())
+						.forEach(info -> info.downloader.cancel());
+			} else if (status.contains("Đã tải")) {
+				if (listFileCompleted != null && !listFileCompleted.isEmpty()) {
+					listFileCompleted.stream().filter(info -> info.split(",")[0].equals(fileName)).forEach(info -> {
+						FileHandle.deleteLineFromTxtFile("CompletedFileTracking.txt", info);
+					});
+				}
+			} else {
+				if (listFileWaiting != null && !listFileWaiting.isEmpty()) {
+					listFileWaiting.stream().filter(info -> info.split(",")[0].equals(fileName)).forEach(info -> {
+						FileHandle.deleteLineFromTxtFile("WaitingFileTracking.txt", info);
+					});
+				}
+			}
+			table.getItems().remove(item);
+		}
+		addDataToMainTable();
 	}
 
 	public static void main(String[] args) {
