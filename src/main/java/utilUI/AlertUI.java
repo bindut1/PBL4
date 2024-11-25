@@ -1,4 +1,4 @@
-package view;
+package utilUI;
 
 import com.jfoenix.controls.*;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;

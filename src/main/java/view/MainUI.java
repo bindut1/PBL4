@@ -1,23 +1,17 @@
 package view;
 
+import utilUI.*;
 import java.awt.Desktop;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.jfoenix.controls.*; // Thư viện JFoenix để tạo giao diện đẹp hơn
+import com.jfoenix.controls.*;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
-import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView; // Thư viện biểu tượng Material Design
+import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
@@ -33,8 +27,10 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Duration;
 import util.FileHandle;
-import util.HttpConnection;
 import util.TimeHandle;
+import javafx.application.Platform;
+import java.lang.Thread;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class MainUI extends Application {
 	private double xOffset = 0;
@@ -42,62 +38,48 @@ public class MainUI extends Application {
 	private BorderPane root;
 	private Stage primaryStage;
 
-	// Thao tac tren 3 list tuong ung voi 3 trang thai
 	public static List<UIObjectGeneral> listFileDownloadingGlobal = new ArrayList<>();
-	public List<String> listFileWaiting = FileHandle.readFileFromTxt("WaitingFileTracking.txt");
 	public List<String> listFileCompleted = FileHandle.readFileFromTxt("CompletedFileTracking.txt");
 
 	public DownloadUI objDownLoadUI;
 	private TableView<MainTableItem> table;
 	private TreeView<String> treeView;
-
 	public Map<UIObjectGeneral, ProgressUI> progressUIMap = new HashMap<>();
 
 	@Override
 	public void start(Stage primaryStage) {
+		objWaiting.getListWaiting();
 		this.primaryStage = primaryStage;
 		this.treeView = new TreeView<>();
-
 		root = new BorderPane();
 		root.getStyleClass().add("main-pane");
-
 		JFXToolbar menuToolbar = new JFXToolbar();
 		menuToolbar.getStyleClass().add("menu-toolbar");
-
 		Label titleLabel = new Label("Internet Download Manager");
 		titleLabel.getStyleClass().add("title-label");
-
 		Region spacer = new Region();
 		HBox.setHgrow(spacer, Priority.ALWAYS);
-
 		JFXButton minimizeBtn = createIconButton(MaterialDesignIcon.WINDOW_MINIMIZE, "minimize-button");
 		JFXButton maximizeBtn = createIconButton(MaterialDesignIcon.WINDOW_MAXIMIZE, "maximize-button");
 		JFXButton closeBtn = createIconButton(MaterialDesignIcon.WINDOW_CLOSE, "close-button");
-
 		HBox windowControls = new HBox(5, minimizeBtn, maximizeBtn, closeBtn);
 		menuToolbar.setLeft(titleLabel);
 		menuToolbar.setRight(windowControls);
-
 		menuToolbar.setOnMousePressed(event -> {
 			xOffset = event.getSceneX();
 			yOffset = event.getSceneY();
 		});
-
 		menuToolbar.setOnMouseDragged(event -> {
 			primaryStage.setX(event.getScreenX() - xOffset);
 			primaryStage.setY(event.getScreenY() - yOffset);
 		});
-
 		VBox toolBarContainer = new VBox(10);
 		toolBarContainer.getStyleClass().add("toolbar-container");
-
 		HBox buttonBox = new HBox(10);
 		buttonBox.getStyleClass().add("button-box");
 		buttonBox.setAlignment(Pos.CENTER);
-
 		double buttonWidth = 250;
 		double buttonHeight = 50;
-
 		JFXButton btnAddPath = createActionButton(MaterialDesignIcon.DOWNLOAD, "THỰC HIỆN TẢI", "18");
 		btnAddPath.setPrefSize(1000, buttonHeight);
 		btnAddPath.setStyle("-fx-font-size: 15px;");
@@ -108,7 +90,6 @@ public class MainUI extends Application {
 			objDownLoadUI.showAndWait();
 			addDataToMainTable();
 		});
-
 		JFXButton btnResume = createActionButton(MaterialDesignIcon.PLAY, "Tiếp tục", "16");
 		btnResume.setPrefSize(buttonWidth, buttonHeight);
 		btnResume.setOnAction(e -> {
@@ -116,7 +97,6 @@ public class MainUI extends Application {
 					.observableArrayList(table.getSelectionModel().getSelectedItems());
 			resumeHandle(selectedItems);
 		});
-
 		JFXButton btnPause = createActionButton(MaterialDesignIcon.PAUSE, "Dừng", "16");
 		btnPause.setPrefSize(buttonWidth, buttonHeight);
 		btnPause.setOnAction(e -> {
@@ -124,7 +104,6 @@ public class MainUI extends Application {
 					.observableArrayList(table.getSelectionModel().getSelectedItems());
 			pauseHandle(selectedItems);
 		});
-
 		JFXButton btnDelete = createActionButton(MaterialDesignIcon.DELETE, "Xóa", "16");
 		btnDelete.setPrefSize(buttonWidth, buttonHeight);
 		btnDelete.setOnAction(e -> {
@@ -135,50 +114,31 @@ public class MainUI extends Application {
 					.observableArrayList(table.getSelectionModel().getSelectedItems());
 			deletedHandle(selectedItems);
 		});
-
 		JFXButton btnSchedule = createActionButton(MaterialDesignIcon.CLOCK, "Lập lịch", "16");
 		btnSchedule.setPrefSize(buttonWidth, buttonHeight);
-		btnSchedule.setOnAction(e -> {
-//			ScheduleUI objScheduleUI = new ScheduleUI(primaryStage);
-//			objScheduleUI.showAndWait();
-			
-//			AlertUI obj = new AlertUI(primaryStage, "Thông báo", "Lỗi file");
-//			obj.showAndWait();
-			
-			PromptUI obj = new PromptUI(primaryStage, "Thông báo khẩn", "File xyz đã được tải. Bạn có muốn tải lại không?");
-			obj.showAndWait();
-		});
-
+		btnSchedule.setOnAction(e -> {handleSchedule();	});
+		
 		buttonBox.getChildren().addAll(btnAddPath);
-
 		HBox footerButtonBox = new HBox(10);
 		footerButtonBox.getStyleClass().add("footer-button-box");
 		footerButtonBox.setAlignment(Pos.CENTER);
 		footerButtonBox.setPadding(new Insets(10));
-
 		footerButtonBox.getChildren().addAll(btnPause, btnResume, btnDelete, btnSchedule);
-
 		toolBarContainer.getChildren().add(buttonBox);
 		root.setBottom(footerButtonBox);
-
 		this.treeView = initializeTreeView();
 		this.table = initializeTable();
 		loadTable("Đã tải");
 		setupTableRowListener();
-
 		VBox topContainer = new VBox(menuToolbar, toolBarContainer);
-
 		root.setTop(topContainer);
 		root.setLeft(treeView);
 		root.setCenter(table);
-
 		Scene scene = new Scene(root, 1000, 600);
-		scene.getStylesheets().add(getClass().getResource("/view/style.css").toExternalForm());
-
+		scene.getStylesheets().add(getClass().getResource("/utilUI/style.css").toExternalForm());
 		primaryStage.initStyle(StageStyle.UNDECORATED);
 		primaryStage.setScene(scene);
 		primaryStage.show();
-
 		closeBtn.setOnAction(e -> primaryStage.close());
 		minimizeBtn.setOnAction(e -> primaryStage.setIconified(true));
 		maximizeBtn.setOnAction(e -> {
@@ -188,15 +148,11 @@ public class MainUI extends Application {
 				primaryStage.setMaximized(true);
 			}
 		});
-
 		// Xu ly cap nhat tien do lien tuc
-		Timeline progressUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(1.5), event -> {
+		Timeline progressUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(1.0), event -> {
 			listFileDownloadingGlobal.forEach(info -> {
-				// Cập nhật ProgressUI
 				ProgressUI objProgressUI = progressUIMap.computeIfAbsent(info, k -> new ProgressUI(primaryStage));
 				info.updateProgressUI(objProgressUI);
-
-				// Cập nhật status trong table
 				if (!info.downloader.getCompletedFlag()) {
 					int progress = (int) (info.downloader.getProgress() * 100);
 					String status = "Đang tải (" + progress + "%)";
@@ -217,11 +173,23 @@ public class MainUI extends Application {
 		}));
 		progressUpdateTimeline.setCycleCount(Timeline.INDEFINITE);
 		progressUpdateTimeline.play();
-
-		primaryStage.setOnCloseRequest(event -> {
-			if (progressUpdateTimeline != null) {
-				progressUpdateTimeline.stop();
+		// xử lí waiting
+		Thread handelWaiting = new Thread(() -> {
+			while (true) {
+				try {
+					objWaiting.handelWaiting();
+					Thread.sleep(1500);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
+				}
 			}
+		});
+		handelWaiting.setDaemon(true);
+		handelWaiting.start();
+		primaryStage.setOnCloseRequest(event -> {
+			if (progressUpdateTimeline!=null)
+				progressUpdateTimeline.stop();
 			handleShutdown();
 		});
 	}
@@ -259,10 +227,9 @@ public class MainUI extends Application {
 			this.table = initializeTable();
 		}
 		table.getItems().clear();
-//		System.out.println("Status hien tai: " + selectedCategory);
 		if (selectedCategory.equals("Đang tải") && listFileDownloadingGlobal != null) {
 			loadTable("Đang tải");
-		} else if (selectedCategory.equals("Chờ tải") && listFileWaiting != null) {
+		} else if (selectedCategory.equals("Chờ tải")) {
 			loadTable("Chờ tải");
 		} else if (selectedCategory.equals("Đã tải")) {
 			loadTable("Đã tải");
@@ -287,12 +254,10 @@ public class MainUI extends Application {
 			break;
 
 		case "Chờ tải":
-			listFileWaiting = FileHandle.readFileFromTxt("WaitingFileTracking.txt");
-			if (listFileWaiting != null) {
-				for (String i : listFileWaiting) {
-					String[] parts = i.split(",");
-					table.getItems().add(new MainTableItem(parts[0], parts[1], "Chờ tải", "N/A", "N/A"));
-				}
+			List<objWaiting> waitings = objWaiting.getListWaiting();
+			for (objWaiting objWaiting : waitings) {
+				table.getItems().add(new MainTableItem(objWaiting.getFileName(), objWaiting.getFilesize(), "Chờ tải",
+						objWaiting.getTime(), "N/A"));
 			}
 			break;
 
@@ -340,7 +305,7 @@ public class MainUI extends Application {
 		TableColumn<MainTableItem, String> statusCol = new TableColumn<>("Trạng thái");
 		TableColumn<MainTableItem, String> dateCol = new TableColumn<>("Ngày tải");
 		TableColumn<MainTableItem, String> timeCol = new TableColumn<>("Thời gian tải");
-
+		
 		nameCol.setPrefWidth(300);
 		sizeCol.setPrefWidth(100);
 		statusCol.setPrefWidth(100);
@@ -357,8 +322,34 @@ public class MainUI extends Application {
 		table.getStyleClass().add("custom-table-view");
 		return table;
 	}
+	
+	
+	private void handleSchedule() {
+		String selectedCategory = treeView != null ? treeView.getSelectionModel().getSelectedItem().getValue()
+				: "Đã tải";
+		ObservableList<MainTableItem> selectedItems = FXCollections
+				.observableArrayList(table.getSelectionModel().getSelectedItems());
+		if (selectedCategory.equals("Chờ tải") && !selectedItems.isEmpty()) {
+			ScheduleUI objScheduleUI = new ScheduleUI(primaryStage);
+			objScheduleUI.showAndWait();
+			String timeString = objScheduleUI.getTime();
+			List<objWaiting> objWaitings = objWaiting.getListWaiting();
+			if (!timeString.equals("")) {
+				for (MainTableItem item : selectedItems) {
+					for (objWaiting waiting : objWaitings) {
+						String selectedFileName = String.valueOf(item.urlProperty().getValue());
+						if (selectedFileName.equals(waiting.getFileName())) {
+							waiting.updateTime(timeString);
+						}
+					}
+				}
+				addDataToMainTable();
+			}
+		}
+	}
+	
 
-	public void handleShutdown() {
+	private void handleShutdown() {
 		listFileDownloadingGlobal.forEach(info -> {
 			if (info.downloaderNotNull())
 				info.downloader.cancel();
@@ -398,7 +389,6 @@ public class MainUI extends Application {
 							if (listFileCompleted != null) {
 								for (String completedFile : listFileCompleted) {
 									String[] parts = completedFile.split(",");
-									// check ten file trung thi + 1 chu ko cho ni sai
 									if (parts[0].equals(selectedFileName)) {
 										filePath = parts[5];
 										break;
@@ -406,10 +396,10 @@ public class MainUI extends Application {
 								}
 							}
 						} else if (selectedStatus.trim().equals("Chờ tải")) {
-							for (String waitingFile : listFileWaiting) {
-								String[] parts = waitingFile.split(",");
-								if (parts[0].equals(selectedFileName)) {
-									filePath = parts[2];
+							List<objWaiting> waitings = objWaiting.getListWaiting();
+							for (objWaiting waiting : waitings) {
+								if (waiting.getFileName().equals(selectedFileName)) {
+									filePath = waiting.getSavePath();
 									break;
 								}
 							}
@@ -418,7 +408,6 @@ public class MainUI extends Application {
 						if (!filePath.isEmpty()) {
 							try {
 								File file = new File(filePath.trim());
-								System.out.println("path ne: " + file);
 								if (file.exists()) {
 									Desktop.getDesktop().open(file);
 								} else {
@@ -498,7 +487,6 @@ public class MainUI extends Application {
 
 	public void deletedHandle(ObservableList<MainTableItem> selectedItems) {
 		if (selectedItems.isEmpty()) {
-			System.out.println("Chon it nhat 1 file de xoa");
 			return;
 		}
 
@@ -517,17 +505,12 @@ public class MainUI extends Application {
 					});
 				}
 			} else {
-				if (listFileWaiting != null && !listFileWaiting.isEmpty()) {
-					listFileWaiting.stream().filter(info -> info.split(",")[0].equals(fileName)).forEach(info -> {
-						FileHandle.deleteLineFromTxtFile("WaitingFileTracking.txt", info);
-					});
-				}
+						objWaiting.deleteWaiting(fileName);
 			}
 			table.getItems().remove(item);
 		}
 		addDataToMainTable();
 	}
-
 	public static void main(String[] args) {
 		launch(args);
 	}

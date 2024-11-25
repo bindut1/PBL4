@@ -132,9 +132,8 @@ public class FileHandle {
 		}
 	}
 
-	public static void saveFileWaitingToTxt(String fileName, long fileSize, String path) {
-		String formattedSize = FileHandle.formatFileSize(fileSize);
-		String logEntry = String.format("%s, %s, %s\n", fileName, formattedSize, path);
+	public static void saveFileWaitingToTxt(String url, String fileSize, String path, String time) {
+		String logEntry = String.format("%s,%s,%s,%s\n", url, fileSize, path, time);
 		try (FileWriter fw = new FileWriter("WaitingFileTracking.txt", true);
 				BufferedWriter bw = new BufferedWriter(fw);
 				PrintWriter out = new PrintWriter(bw)) {
@@ -151,9 +150,7 @@ public class FileHandle {
 
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
              BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
-
             String currentLine;
-
             // Đọc từng dòng từ file gốc
             while ((currentLine = reader.readLine()) != null) {
                 // So sánh dòng hiện tại với dòng cần xóa
@@ -185,7 +182,6 @@ public class FileHandle {
         if (!tempFile.renameTo(inputFile)) {
             return false;
         }
-
         return true;
     }
 }

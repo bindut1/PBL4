@@ -1,4 +1,4 @@
-package view;
+package utilUI;
 
 import com.jfoenix.controls.*;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
@@ -14,10 +14,12 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import java.time.LocalDate;
 import java.util.stream.IntStream;
+import java.time.LocalTime;
 
 public class ScheduleUI extends Stage {
 	private double xOffset = 0;
 	private double yOffset = 0;
+	private String time;
 
 	public ScheduleUI(Stage owner) {
 		initOwner(owner);
@@ -62,15 +64,16 @@ public class ScheduleUI extends Stage {
 		HBox timePickerBox = new HBox(5);
 		timePickerBox.setAlignment(Pos.CENTER);
 		timePickerBox.getStyleClass().add("time-picker");
-
+		
+		LocalTime currentTime = LocalTime.now();
 		ComboBox<Integer> hourComboBox = new ComboBox<>();
 		hourComboBox.getItems().addAll(IntStream.range(0, 24).boxed().toList());
-		hourComboBox.setValue(12);
+		hourComboBox.setValue(currentTime.getHour()); // Đặt giờ hiện tại
 		hourComboBox.getStyleClass().add("combo-box");
 
 		ComboBox<Integer> minuteComboBox = new ComboBox<>();
 		minuteComboBox.getItems().addAll(IntStream.range(0, 60).boxed().toList());
-		minuteComboBox.setValue(0);
+		minuteComboBox.setValue(currentTime.getMinute()); // Đặt phút hiện tại
 		minuteComboBox.getStyleClass().add("combo-box");
 
 		Label colonLabel = new Label(":");
@@ -95,16 +98,14 @@ public class ScheduleUI extends Stage {
 			LocalDate selectedDate = datePicker.getValue();
 			Integer selectedHour = hourComboBox.getValue();
 			Integer selectedMinute = minuteComboBox.getValue();
-
-			System.out.printf("Đã lên lịch tải vào ngày %s lúc %02d:%02d%n", selectedDate, selectedHour,
+			this.time = String.format("%s %02d:%02d", selectedDate, selectedHour,
 					selectedMinute);
-
 			close();
 		});
 
 		Scene scene = new Scene(mainContainer);
 		scene.setFill(null);
-		scene.getStylesheets().add(getClass().getResource("/view/style1.css").toExternalForm());
+		scene.getStylesheets().add(getClass().getResource("/utilUI/style1.css").toExternalForm());
 		setScene(scene);
 
 		Platform.runLater(() -> {
@@ -113,6 +114,13 @@ public class ScheduleUI extends Stage {
 				setY(owner.getY() + (owner.getHeight() - getHeight()) / 2);
 			}
 		});
+	}
+
+	public String getTime() {
+		if (this.time != null)
+			return this.time;
+		else
+			return "";
 	}
 
 	private JFXButton createIconButton(MaterialDesignIcon icon, String styleClass) {

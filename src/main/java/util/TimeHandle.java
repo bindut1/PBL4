@@ -1,5 +1,9 @@
 package util;
 
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
 public class TimeHandle {
 	public static String formatTime(double milliseconds) {
 		int seconds = (int) (milliseconds / 1000);
@@ -21,5 +25,19 @@ public class TimeHandle {
 	public static double getCurrentTime() {
 		return System.currentTimeMillis();
 	}
+	
+    public static long stringToTimeMillis(String dateTimeStr) {
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+            LocalDateTime dateTime = LocalDateTime.parse(dateTimeStr, formatter);
+            long milliseconds = dateTime.atZone(ZoneId.systemDefault())
+                                        .toInstant()
+                                        .toEpochMilli();
+
+            return milliseconds;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
 
 }

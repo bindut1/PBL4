@@ -1,14 +1,12 @@
 package view;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
-import download.AbstractDownloadObject;
 import download.DownloadObject;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TreeView;
+import util.FileHandle;
 
 public class UIObjectGeneral extends DownloadObject {
 	private String url;
@@ -18,8 +16,6 @@ public class UIObjectGeneral extends DownloadObject {
 	private String fileSize;
 	private String date;
 	private String time;
-	private double progress;
-	private String textarea;
 	private boolean selected = false;
 	private boolean isSaveToTxt = false;
 
@@ -94,7 +90,7 @@ public class UIObjectGeneral extends DownloadObject {
 	public boolean isDownloading() {
 		return this.downloader.getCompletedFlag();
 	}
-	
+
 	public String getTime() {
 		return time;
 	}
@@ -109,7 +105,25 @@ public class UIObjectGeneral extends DownloadObject {
 			progressUI.appendText(this.downloader.getDetailText());
 		}
 	}
-	
+
+	public void updateInfor() {
+		try {
+			String date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+			boolean checkTypeFile = this.getUrl().endsWith(".torrent");
+			String fileName = (checkTypeFile) ? FileHandle.getFileNameTorrent(this.getUrl(), this.getPath())
+					: FileHandle.getFileNameFromConnectHttp(this.getUrl());
+			long fileSize = (checkTypeFile) ? FileHandle.getFileSizeTorrent(this.getUrl(), this.getPath())
+					: FileHandle.getFileSizeFromConnectHttp(this.getUrl());
+			this.setFileName(fileName);
+			this.setFileSize(FileHandle.formatFileSize(fileSize));
+
+			this.setDate(date);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+
 	public static List<UIObjectGeneral> convertDownloadItemToUIObjectGeneral(List<DownloadItem> items) {
 		List<UIObjectGeneral> uiObjectList = new ArrayList<>();
 		if (items == null) {
@@ -120,7 +134,7 @@ public class UIObjectGeneral extends DownloadObject {
 				uiObject.setUrl(item.url.get());
 				uiObject.setPath(item.savePath.get());
 				uiObject.setSelected(item.selected.get());
-
+				uiObject.updateInfor();
 				uiObjectList.add(uiObject);
 			}
 		}

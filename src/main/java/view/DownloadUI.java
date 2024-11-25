@@ -57,7 +57,6 @@ public class DownloadUI extends Stage {
 	public MainUI mainUI;
 	public ProgressUI objProgressUI;
 
-//	private String defaultSavePath = System.getProperty("user.home") + "\\Downloads";
 	private String defaultSavePath = "D:\\PBL4\\SAVE";
 	Timeline progressUpdateTimeline;
 
@@ -258,7 +257,7 @@ public class DownloadUI extends Stage {
 
 		Scene scene = new Scene(mainContainer);
 		scene.setFill(null);
-		scene.getStylesheets().add(getClass().getResource("/view/style1.css").toExternalForm());
+		scene.getStylesheets().add(getClass().getResource("/utilUI/style1.css").toExternalForm());
 		setScene(scene);
 
 		Platform.runLater(() -> {
@@ -283,22 +282,11 @@ public class DownloadUI extends Stage {
 			try {
 				List<UIObjectGeneral> downloadFiles = UIObjectGeneral.convertDownloadItemToUIObjectGeneral(downloadItems);
 				if (!downloadFiles.isEmpty()) {
-					String date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
 					for (UIObjectGeneral i : downloadFiles) {
-						boolean checkTypeFile = i.getUrl().endsWith(".torrent");
-						String fileName = (checkTypeFile) ? FileHandle.getFileNameTorrent(i.getUrl(), i.getPath())
-								: FileHandle.getFileNameFromConnectHttp(i.getUrl());
-						long fileSize = (checkTypeFile) ? FileHandle.getFileSizeTorrent(i.getUrl(), i.getPath())
-								: FileHandle.getFileSizeFromConnectHttp(i.getUrl());
-						i.setFileName(fileName);
-						i.setFileSize(FileHandle.formatFileSize(fileSize));
-						i.setDate(date);
 						if (!i.isSelected()) {
-							System.out.println("Cho tai o if");
-							FileHandle.saveFileWaitingToTxt(fileName, fileSize, i.getPath());
+							objWaiting.addWaiting(i.getUrl(), i.getFileSize(), i.getPath());
 							mainUI.addDataToMainTable();
 						} else {
-							System.out.println("Dang tai o else");
 							i.setStatus("Đang tải");
 							new Thread(() -> {
 								mainUI.listFileDownloadingGlobal.add(i);
@@ -308,8 +296,11 @@ public class DownloadUI extends Stage {
 						}
 					}
 				}
+				Platform.runLater(() -> {
+	                downloadItems.clear();
+	                downloadTable.refresh(); 
+	            });
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}).start();
