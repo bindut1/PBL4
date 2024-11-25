@@ -30,6 +30,14 @@ public class UIObjectGeneral extends DownloadObject {
 	public UIObjectGeneral(String url, String path) {
 		super(url, path);
 	}
+	
+	public UIObjectGeneral(objWaiting waiting) {
+		super(waiting.getUrl(), waiting.getSavePath());
+		this.fileName = waiting.getFileName();
+		this.date = waiting.getTime();
+		this.fileSize = waiting.getFilesize();
+	}
+	
 
 	public String getDate() {
 		return date;
@@ -116,7 +124,6 @@ public class UIObjectGeneral extends DownloadObject {
 					: FileHandle.getFileSizeFromConnectHttp(this.getUrl());
 			this.setFileName(fileName);
 			this.setFileSize(FileHandle.formatFileSize(fileSize));
-
 			this.setDate(date);
 		} catch (Exception e) {
 			e.printStackTrace();

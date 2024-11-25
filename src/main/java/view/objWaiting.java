@@ -73,23 +73,23 @@ public class objWaiting {
 
 	}
 
-	public static void handelWaiting() {
-		List<DownloadItem> downloadItems = new ArrayList<DownloadItem>();
+	public static void handelWaiting(MainUI mainUI) {
+		List<UIObjectGeneral> downloadFiles = new ArrayList<UIObjectGeneral>();
 		waitings.removeIf(objWaiting -> {
 			long waitingTimeMillis = TimeHandle.stringToTimeMillis(objWaiting.getTime());
 			long currentTimeMillis = (long) TimeHandle.getCurrentTime();
 			if (waitingTimeMillis != 0 && waitingTimeMillis <= currentTimeMillis) {
-				downloadItems.add(new DownloadItem(objWaiting.getUrl(), objWaiting.getSavePath()));
+				downloadFiles.add(new UIObjectGeneral(objWaiting));
 				FileHandle.deleteLineFromTxtFile("WaitingFileTracking.txt", convertToStringTxt(objWaiting));
 				return true;
 			}
 			return false;
 		});
-		if (!downloadItems.isEmpty()) {
-			List<UIObjectGeneral> downloadFiles = UIObjectGeneral.convertDownloadItemToUIObjectGeneral(downloadItems);
+		if (!downloadFiles.isEmpty()) {
 			for (UIObjectGeneral uiObjectGeneral : downloadFiles) {
 				new Thread(() -> {
 					MainUI.listFileDownloadingGlobal.add(uiObjectGeneral);
+					mainUI.addDataToMainTable();
 					uiObjectGeneral.start();
 				}).start();
 			}

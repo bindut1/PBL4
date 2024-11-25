@@ -177,7 +177,7 @@ public class MainUI extends Application {
 		Thread handelWaiting = new Thread(() -> {
 			while (true) {
 				try {
-					objWaiting.handelWaiting();
+					objWaiting.handelWaiting(this);
 					Thread.sleep(1500);
 				} catch (InterruptedException e) {
 					Thread.currentThread().interrupt();
