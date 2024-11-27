@@ -1,0 +1,145 @@
+/* Dialog container styles */
+.dialog-container {
+	-fx-background-color: #f5f6fa;
+	-fx-min-width: 600px;
+	-fx-border-color: #e0e0e0;
+	-fx-border-radius: 0;
+	-fx-background-radius: 0;
+}
+
+/* Header styles - match with MainUI */
+.dialog-header {
+	-fx-background-color: #2c3e50;
+	-fx-padding: 5 15 5 15;
+	-fx-min-height: 40px;
+	-fx-cursor: move;
+}
+
+.dialog-title {
+	-fx-text-fill: white;
+	-fx-font-size: 16px;
+	-fx-font-weight: bold;
+}
+
+/* Close button styles - match with MainUI */
+.dialog-close-button {
+	-fx-background-color: transparent;
+	-fx-min-width: 35px;
+	-fx-min-height: 25px;
+}
+
+.dialog-close-button:hover {
+	-fx-background-color: #e74c3e;
+}
+
+.dialog-close-button .material-design-icon {
+	-fx-fill: white;
+}
+
+/* Content area styles */
+.url-input {
+	-fx-padding: 8;
+	-fx-background-color: #f8f9fa;
+	-fx-background-radius: 5;
+	-fx-prompt-text-fill: #95a5a6;
+}
+
+.url-table {
+	-fx-background-color: white;
+	-fx-border-color: #ecf0f1;
+	-fx-border-radius: 5;
+	-fx-padding: 5;
+}
+
+/* Button container styles */
+.button-box {
+	-fx-padding: 10 15 10 15;
+}
+
+/* URL input container styles */
+HBox {
+	-fx-padding: 10 15 10 15;
+}
+
+/* Table styles */
+.url-table .column-header {
+	-fx-background-color: #f8f9fa;
+	-fx-padding: 8 5;
+}
+
+.url-table .table-row-cell {
+	-fx-background-color: white;
+	-fx-border-color: transparent transparent #ecf0f1 transparent;
+}
+
+/* Action buttons styles */
+.add-url-button {
+	-fx-background-color: #2ecc71;
+	-fx-text-fill: white;
+	-fx-padding: 8 12;
+	-fx-background-radius: 5;
+}
+
+.cancel-button**, ** .download-button {
+	-fx-padding: 8 15;
+	-fx-background-radius: 5;
+}
+
+.cancel-button {
+	-fx-background-color: #ecf0f1;
+	-fx-text-fill: #2c3e50;
+}
+
+.download-button {
+	-fx-background-color: #3498db;
+	-fx-text-fill: white;
+}
+
+/* Schedule */
+/* Thay đổi màu sắc của các nút */
+.ok-button {
+	-fx-background-color: #3498db;
+	-fx-text-fill: white;
+	-fx-padding: 7 14;
+	-fx-font-size: 14px;
+}
+
+.dialog-close-button {
+	-fx-background-color: transparent;
+	-fx-text-fill: #666; /* Màu xám cho nút đóng */
+}
+
+.dialog-close-button:hover {
+	-fx-background-color: #e74c3e;
+}
+
+/* Kích thước của DatePicker và Time Picker */
+.date-picker, .time-picker {
+	-fx-font-size: 14px;
+	-fx-pref-height: 40px;
+}
+
+.combo-box {
+	-fx-pref-width: 70px;
+	-fx-font-size: 14px;
+	-fx-pref-height: 40px;
+}
+
+/* Cập nhật style cho các nút */
+.yes-button {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+}
+
+.yes-button:hover {
+    -fx-background-color: #2980b9;
+}
+
+.no-button {
+    -fx-background-color: #e7e7e7;
+    -fx-text-fill: black;
+}
+
+.no-button:hover {
+    -fx-background-color: #ecf0f1;
+}

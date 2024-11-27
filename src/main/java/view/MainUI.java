@@ -31,6 +31,7 @@ import util.TimeHandle;
 import javafx.application.Platform;
 import java.lang.Thread;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 public class MainUI extends Application {
 	private double xOffset = 0;
@@ -116,8 +117,10 @@ public class MainUI extends Application {
 		});
 		JFXButton btnSchedule = createActionButton(MaterialDesignIcon.CLOCK, "Lập lịch", "16");
 		btnSchedule.setPrefSize(buttonWidth, buttonHeight);
-		btnSchedule.setOnAction(e -> {handleSchedule();	});
-		
+		btnSchedule.setOnAction(e -> {
+			handleSchedule();
+		});
+
 		buttonBox.getChildren().addAll(btnAddPath);
 		HBox footerButtonBox = new HBox(10);
 		footerButtonBox.getStyleClass().add("footer-button-box");
@@ -188,7 +191,7 @@ public class MainUI extends Application {
 		handelWaiting.setDaemon(true);
 		handelWaiting.start();
 		primaryStage.setOnCloseRequest(event -> {
-			if (progressUpdateTimeline!=null)
+			if (progressUpdateTimeline != null)
 				progressUpdateTimeline.stop();
 			handleShutdown();
 		});
@@ -305,7 +308,7 @@ public class MainUI extends Application {
 		TableColumn<MainTableItem, String> statusCol = new TableColumn<>("Trạng thái");
 		TableColumn<MainTableItem, String> dateCol = new TableColumn<>("Ngày tải");
 		TableColumn<MainTableItem, String> timeCol = new TableColumn<>("Thời gian tải");
-		
+
 		nameCol.setPrefWidth(300);
 		sizeCol.setPrefWidth(100);
 		statusCol.setPrefWidth(100);
@@ -322,8 +325,7 @@ public class MainUI extends Application {
 		table.getStyleClass().add("custom-table-view");
 		return table;
 	}
-	
-	
+
 	private void handleSchedule() {
 		String selectedCategory = treeView != null ? treeView.getSelectionModel().getSelectedItem().getValue()
 				: "Đã tải";
@@ -347,7 +349,6 @@ public class MainUI extends Application {
 			}
 		}
 	}
-	
 
 	private void handleShutdown() {
 		listFileDownloadingGlobal.forEach(info -> {
@@ -495,9 +496,12 @@ public class MainUI extends Application {
 			String status = item.statusProperty().getValue();
 
 			if (status.contains("Đang tải")) {
-				listFileDownloadingGlobal.stream().filter(info -> info.getFileName().equals(fileName)
-						&& info.downloaderNotNull() && info.downloader.getRunningFlag())
-						.forEach(info -> info.downloader.cancel());
+				List<UIObjectGeneral> downloadInfoToCancel = listFileDownloadingGlobal.stream()
+						.filter(info -> info.getFileName().equals(fileName) && info.downloaderNotNull()
+								&& info.downloader.getRunningFlag())
+						.collect(Collectors.toList());
+				downloadInfoToCancel.forEach(info -> info.downloader.cancel());
+				listFileDownloadingGlobal.removeAll(downloadInfoToCancel);
 			} else if (status.contains("Đã tải")) {
 				if (listFileCompleted != null && !listFileCompleted.isEmpty()) {
 					listFileCompleted.stream().filter(info -> info.split(",")[0].equals(fileName)).forEach(info -> {
@@ -505,12 +509,13 @@ public class MainUI extends Application {
 					});
 				}
 			} else {
-						objWaiting.deleteWaiting(fileName);
+				objWaiting.deleteWaiting(fileName);
 			}
 			table.getItems().remove(item);
 		}
 		addDataToMainTable();
 	}
+
 	public static void main(String[] args) {
 		launch(args);
 	}

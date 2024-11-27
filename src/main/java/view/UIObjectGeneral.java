@@ -36,6 +36,7 @@ public class UIObjectGeneral extends DownloadObject {
 		this.fileName = waiting.getFileName();
 		this.date = waiting.getTime();
 		this.fileSize = waiting.getFilesize();
+		this.path = waiting.getSavePath();
 	}
 	
 

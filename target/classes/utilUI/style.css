@@ -1,0 +1,203 @@
+.main-pane {
+    -fx-background-color: #f5f6fa;
+}
+
+.menu-toolbar {
+    -fx-background-color: #2c3e50;
+    -fx-padding: 5 15 5 15;
+    -fx-min-height: 40px;
+}
+
+.title-label {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.icon-button {
+    -fx-background-color: transparent;
+    -fx-min-width: 35px;
+    -fx-min-height: 25px;
+}
+
+.icon-button:hover {
+    -fx-background-color: #34495e;
+}
+
+.icon-button .material-design-icon {
+    -fx-fill: white;
+}
+
+.close-button:hover {
+    -fx-background-color: #e74c3e;
+}
+
+.toolbar-container {
+    -fx-background-color: white;
+    -fx-padding: 10;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 2);
+}
+
+.button-box {
+    -fx-spacing: 10;
+    -fx-padding: 5;
+}
+
+.action-button {
+    -fx-background-color: white;
+    -fx-text-fill: #2c3e50;
+    -fx-font-size: 13px;
+    -fx-padding: 8 15 8 15;
+    -fx-border-color: #ecf0f1;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+.action-button:hover {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-border-color: #3498db;
+}
+
+.action-button .material-design-icon {
+    -fx-fill: #2c3e50;
+}
+
+.action-button:hover .material-design-icon {
+    -fx-fill: white;
+}
+
+.custom-tree-view {
+    -fx-background-color: white;
+    -fx-padding: 10;
+    -fx-min-width: 200;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 2);
+}
+
+.custom-tree-view .tree-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 10 5 10 5;
+    -fx-text-fill: #2c3e50;
+}
+
+.custom-tree-view .tree-cell:hover {
+    -fx-background-color: #e0e0e0; /* Màu nền khi hover chỉ áp dụng cho các mục có dữ liệu */
+}
+
+.custom-tree-view .tree-cell:selected {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 2);
+}
+
+.custom-tree-view .tree-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 10 5 10 5;
+    -fx-text-fill: #2c3e50;
+}
+
+/* Đảm bảo không có hiệu ứng hover trên các TreeItem không có con */
+.custom-tree-view .tree-cell:empty {
+    -fx-background-color: transparent;  /* Không có nền khi không có dữ liệu */
+}
+
+
+.custom-table-view {
+    -fx-background-color: white;
+    -fx-padding: 10;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 2);
+}
+
+
+.custom-table-view .table-row-cell:selected .table-cell {
+    -fx-text-fill: black;
+}
+
+.custom-table-view .table-row-cell:hover {
+    -fx-background-color: #e0e0e0; /* Màu nền khi hover */
+}
+
+.footer-button-box {
+
+    background-color: #f0f0f0;
+    -fx-border-color: #dcdcdc;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.footer-button-box .jfx-button {
+    -fx-margin: 30px; /* Đây là margin giữa các nút */
+}
+
+
+/* Tăng chiều cao của header */
+.custom-table-view .column-header {
+    -fx-pref-height: 40px;  /* Điều chỉnh chiều cao của header */
+    -fx-background-color: #f4f4f4;  /* Màu nền của header */
+    -fx-border-width: 0 1 1 0;  /* Border phía dưới và bên phải */
+    -fx-border-color: #ddd;  /* Màu của border */
+}
+
+/* Style cho vùng chứa header */
+.custom-table-view .column-header-background {
+    -fx-background-color: #f4f4f4;
+    -fx-border-width: 0 0 1 0;  /* Border phía dưới */
+    -fx-border-color: #ddd;
+}
+
+/* Style cho text trong header */
+.custom-table-view .column-header .label {
+    -fx-alignment: CENTER;  /* Căn lề cho text */
+    -fx-padding: 0 5 0 5;  /* Padding cho text */
+    -fx-font-weight: bold;  /* In đậm text */
+}
+
+/* Đường kẻ giữa các cột */
+.custom-table-view .column-header {
+    -fx-border-width: 0 1 1 0;  /* Right and bottom border */
+    -fx-border-color: #ddd;
+}
+
+/* Style cho các cell trong table */
+.custom-table-view .table-cell {
+    -fx-padding: 8 5 8 5;
+    
+   /*  -fx-border-width: 0 1 0 0;  */ /* Đường kẻ bên phải của mỗi cell */
+/*     -fx-border-color: #ddd; */
+}
+
+/* Loại bỏ border cuối cùng của header */
+.custom-table-view .column-header:last-visible {
+    -fx-border-width: 0 0 1 0;
+}
+
+/* Style cho hover - chỉ áp dụng khi row không được chọn */
+.custom-table-view .table-row-cell:hover:not(:selected) {
+    -fx-background-color: #f8f9fa;
+}
+
+/* Style cho row được chọn */
+.custom-table-view .table-row-cell:selected {
+    -fx-background-color: #3498db !important; /* Màu đỏ */
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 2);
+}
+
+/* Style cho các cell trong row được chọn */
+.custom-table-view .table-row-cell:selected .table-cell {
+    -fx-text-fill: white; /* Đổi màu chữ thành trắng để dễ đọc trên nền đỏ */
+}
+
+.custom-table-view .table-row-cell {
+    -fx-background-color: white; /* Đặt nền trắng cho tất cả các row */
+   /*  -fx-padding: 5 4 5 4; */ /* Khoảng cách bên trong các ô */
+}
+
+/* Chỉ áp dụng hover khi row có dữ liệu */
+.custom-table-view .table-row-cell:empty:hover {
+    -fx-background-color: transparent; /* Không áp dụng màu nền */
+}
+
+/* Loại bỏ hiệu ứng hover cho các row rỗng */
+.custom-table-view .table-row-cell:empty {
+    -fx-background-color: transparent;
+}
+

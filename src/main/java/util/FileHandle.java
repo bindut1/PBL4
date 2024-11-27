@@ -122,7 +122,7 @@ public class FileHandle {
 
 	public static void saveFileCompletedToTxt(String fileName, String fileSize, String status, String date, String time,
 			String path) {
-		String logEntry = String.format("%s, %s, %s, %s, %s, %s\n", fileName, fileSize, status, date, time, path);
+		String logEntry = String.format("%s, %s, %s, %s, %s, %s", fileName, fileSize, status, date, time, path);
 		try (FileWriter fw = new FileWriter("CompletedFileTracking.txt", true);
 				BufferedWriter bw = new BufferedWriter(fw);
 				PrintWriter out = new PrintWriter(bw)) {
@@ -133,7 +133,7 @@ public class FileHandle {
 	}
 
 	public static void saveFileWaitingToTxt(String url, String fileSize, String path, String time) {
-		String logEntry = String.format("%s,%s,%s,%s\n", url, fileSize, path, time);
+		String logEntry = String.format("%s,%s,%s,%s", url, fileSize, path, time);
 		try (FileWriter fw = new FileWriter("WaitingFileTracking.txt", true);
 				BufferedWriter bw = new BufferedWriter(fw);
 				PrintWriter out = new PrintWriter(bw)) {
