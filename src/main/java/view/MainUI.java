@@ -108,9 +108,6 @@ public class MainUI extends Application {
 		JFXButton btnDelete = createActionButton(MaterialDesignIcon.DELETE, "Xóa", "16");
 		btnDelete.setPrefSize(buttonWidth, buttonHeight);
 		btnDelete.setOnAction(e -> {
-			// dang loi cai xoa file dang tai nhung van ghi vo file txt, completedFlag bi
-			// loi nao do(chua fix)
-			// hien tai chua truc tiep xoa file trong path
 			ObservableList<MainTableItem> selectedItems = FXCollections
 					.observableArrayList(table.getSelectionModel().getSelectedItems());
 			deletedHandle(selectedItems);

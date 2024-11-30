@@ -133,7 +133,7 @@ public class FileHandle {
 	}
 
 	public static void saveFileWaitingToTxt(String url, String fileSize, String path, String time) {
-		String logEntry = String.format("%s,%s,%s,%s", url, fileSize, path, time);
+		String logEntry = String.format("%s, %s, %s, %s", url, fileSize, path, time);
 		try (FileWriter fw = new FileWriter("WaitingFileTracking.txt", true);
 				BufferedWriter bw = new BufferedWriter(fw);
 				PrintWriter out = new PrintWriter(bw)) {
@@ -144,44 +144,35 @@ public class FileHandle {
 	}
 
 	public static boolean deleteLineFromTxtFile(String fileName, String lineToDelete) {
-        File inputFile = new File(fileName);
-        File tempFile = new File("temp.txt");
-        boolean found = false;
+		File inputFile = new File(fileName);
+		File tempFile = new File("temp.txt");
+		boolean found = false;
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
-             BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
-            String currentLine;
-            // Đọc từng dòng từ file gốc
-            while ((currentLine = reader.readLine()) != null) {
-                // So sánh dòng hiện tại với dòng cần xóa
-                if (currentLine.trim().equals(lineToDelete.trim())) {
-                    found = true;
-                    continue; // Bỏ qua dòng này (không ghi vào file tạm)
-                }
-                // Ghi các dòng khác vào file tạm
-                writer.write(currentLine);
-                writer.newLine();
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-
-        // Nếu không tìm thấy dòng cần xóa
-        if (!found) {
-            tempFile.delete();
-            return false;
-        }
-
-        // Xóa file gốc và đổi tên file tạm thành file gốc
-        if (!inputFile.delete()) {
-            tempFile.delete();
-            return false;
-        }
-        if (!tempFile.renameTo(inputFile)) {
-            return false;
-        }
-        return true;
-    }
+		try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+				BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+			String currentLine;
+			while ((currentLine = reader.readLine()) != null) {
+				if (currentLine.trim().equals(lineToDelete.trim())) {
+					found = true;
+					continue;
+				}
+				writer.write(currentLine);
+				writer.newLine();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		if (!found) {
+			tempFile.delete();
+			return false;
+		}
+		if (!inputFile.delete()) {
+			tempFile.delete();
+			return false;
+		}
+		if (!tempFile.renameTo(inputFile))
+			return false;
+		return true;
+	}
 }
