@@ -9,6 +9,9 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
+import javafx.scene.text.TextFlow;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -29,7 +32,7 @@ public class PromptUI extends Stage {
 		mainContainer.getStyleClass().add("dialog-container");
 		mainContainer.setPadding(new Insets(0));
 		setWidth(300);
-		setHeight(150);
+		setHeight(160);
 
 		JFXToolbar header = new JFXToolbar();
 		header.getStyleClass().add("dialog-header");
@@ -56,10 +59,14 @@ public class PromptUI extends Stage {
 			setY(event.getScreenY() - yOffset);
 		});
 
-		Label messageLabel = new Label(message);
-		messageLabel.setWrapText(true);
-		messageLabel.getStyleClass().add("message-label");
-		VBox messageBox = new VBox(messageLabel);
+		Text messageText = new Text(message);
+		messageText.setTextAlignment(TextAlignment.CENTER);
+		TextFlow messageFlow = new TextFlow(messageText);
+		messageFlow.setTextAlignment(TextAlignment.CENTER);
+		messageFlow.setPrefWidth(260);
+		messageFlow.setLineSpacing(1); // Tùy chỉnh khoảng cách giữa các dòng
+
+		VBox messageBox = new VBox(messageFlow);
 		messageBox.setAlignment(Pos.CENTER);
 		messageBox.setPadding(new Insets(10, 15, 10, 15));
 

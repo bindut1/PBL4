@@ -141,7 +141,9 @@ public class MainUI extends Application {
 		primaryStage.initStyle(StageStyle.UNDECORATED);
 		primaryStage.setScene(scene);
 		primaryStage.show();
-		closeBtn.setOnAction(e -> primaryStage.close());
+		closeBtn.setOnAction(e -> {
+			handleClose();
+		});
 		minimizeBtn.setOnAction(e -> primaryStage.setIconified(true));
 		maximizeBtn.setOnAction(e -> {
 			if (primaryStage.isMaximized()) {
@@ -159,9 +161,10 @@ public class MainUI extends Application {
 					if (!info.downloader.getCompletedFlag()) {
 						String status = "";
 						int progress = (int) (info.downloader.getProgress() * 100);
-						if(info.downloader.getRunningFlag())
+						if (info.downloader.getRunningFlag())
 							status = "Đang tải (" + progress + "%)";
-						else status = "Tạm dừng (" + progress + "%)";
+						else
+							status = "Tạm dừng (" + progress + "%)";
 						updateTableRow(info.getFileName(), info.getFileSize(), status);
 					} else {
 						if (!info.isSaveToTxt()) {
@@ -431,7 +434,8 @@ public class MainUI extends Application {
 		}
 
 		if (checkInvalidFile) {
-			AlertUI alertUI = new AlertUI(primaryStage, "Thông báo", "Chỉ có thể " + txt + " các file ở trạng thái Đang tải");
+			AlertUI alertUI = new AlertUI(primaryStage, "Thông báo",
+					"Chỉ có thể " + txt + " các file ở trạng thái Đang tải");
 			alertUI.showAndWait();
 			return;
 		}
@@ -471,7 +475,7 @@ public class MainUI extends Application {
 		}
 		PromptUI promptUI = new PromptUI(primaryStage, "Xác nhận xóa", "Bạn có chắc chắn muốn xóa?");
 		promptUI.showAndWait();
-		if(promptUI.isResult()) {
+		if (promptUI.isResult()) {
 			for (MainTableItem item : selectedItems) {
 				String fileName = item.urlProperty().getValue();
 				String status = item.statusProperty().getValue();
@@ -497,7 +501,7 @@ public class MainUI extends Application {
 		}
 		addDataToMainTable();
 	}
-	
+
 	private void handleSchedule(ObservableList<MainTableItem> selectedItems) {
 		if (selectedItems.isEmpty()) {
 			AlertUI alertUI = new AlertUI(primaryStage, "Thông báo", "Chọn ít nhất 1 file để Lập lịch");
@@ -522,11 +526,25 @@ public class MainUI extends Application {
 				}
 				addDataToMainTable();
 			}
-		}
-		else {
-			AlertUI alertUI = new AlertUI(primaryStage, "Thông báo", "Chỉ có thể Lập lịch cho file ở trạng thái Chờ tải");
+		} else {
+			AlertUI alertUI = new AlertUI(primaryStage, "Thông báo",
+					"Chỉ có thể Lập lịch cho file ở trạng thái Chờ tải");
 			alertUI.showAndWait();
 			return;
+		}
+	}
+
+	public void handleClose() {
+		if(!listFileDownloadingGlobal.isEmpty()) {
+			PromptUI promptUI = new PromptUI(primaryStage, "Xác nhận đóng", "Đóng chương trình sẽ hủy bỏ tất cả những file đang tải. Bạn có muốn đóng?");
+			promptUI.showAndWait();
+			if (promptUI.isResult()) {
+				handleShutdown();
+				primaryStage.close();
+			}
+		}
+		else {
+			primaryStage.close();
 		}
 	}
 
