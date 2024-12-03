@@ -108,9 +108,6 @@ public class MainUI extends Application {
 		JFXButton btnDelete = createActionButton(MaterialDesignIcon.DELETE, "Xóa", "16");
 		btnDelete.setPrefSize(buttonWidth, buttonHeight);
 		btnDelete.setOnAction(e -> {
-			// dang loi cai xoa file dang tai nhung van ghi vo file txt, completedFlag bi
-			// loi nao do(chua fix)
-			// hien tai chua truc tiep xoa file trong path
 			ObservableList<MainTableItem> selectedItems = FXCollections
 					.observableArrayList(table.getSelectionModel().getSelectedItems());
 			deletedHandle(selectedItems);
@@ -131,7 +128,7 @@ public class MainUI extends Application {
 		root.setBottom(footerButtonBox);
 		this.treeView = initializeTreeView();
 		this.table = initializeTable();
-		loadTable("Đã tải");
+		loadTableCompleted();
 		setupTableRowListener();
 		VBox topContainer = new VBox(menuToolbar, toolBarContainer);
 		root.setTop(topContainer);
@@ -153,25 +150,30 @@ public class MainUI extends Application {
 		});
 		// Xu ly cap nhat tien do lien tuc
 		Timeline progressUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(1.0), event -> {
-			listFileDownloadingGlobal.forEach(info -> {
-				ProgressUI objProgressUI = progressUIMap.computeIfAbsent(info, k -> new ProgressUI(primaryStage));
-				info.updateProgressUI(objProgressUI);
-				if (!info.downloader.getCompletedFlag()) {
-					int progress = (int) (info.downloader.getProgress() * 100);
-					String status = "Đang tải (" + progress + "%)";
-					updateTableRow(info.getFileName(), info.getFileSize(), status);
-				} else {
-					if (!info.isSaveToTxt()) {
-						String time = String.valueOf(
-								TimeHandle.formatTime((System.currentTimeMillis() - info.downloader.getStartTime())));
-						info.setStatus("Đã tải");
-						FileHandle.saveFileCompletedToTxt(info.getFileName(), info.getFileSize(), info.getStatus(),
-								info.getDate(), time, info.getPath());
-						info.setSaveToTxt(true);
-						updateTableRow(info.getFileName(), info.getFileSize(), "Đã tải");
-						addDataToMainTable();
+			Platform.runLater(() -> {
+				listFileDownloadingGlobal.forEach(info -> {
+					ProgressUI objProgressUI = progressUIMap.computeIfAbsent(info, k -> new ProgressUI(primaryStage));
+					info.updateProgressUI(objProgressUI);
+					if (!info.downloader.getCompletedFlag()) {
+						String status = "";
+						int progress = (int) (info.downloader.getProgress() * 100);
+						if(info.downloader.getRunningFlag())
+							status = "Đang tải (" + progress + "%)";
+						else status = "Tạm dừng (" + progress + "%)";
+						updateTableRow(info.getFileName(), info.getFileSize(), status);
+					} else {
+						if (!info.isSaveToTxt()) {
+							String time = String.valueOf(TimeHandle
+									.formatTime((System.currentTimeMillis() - info.downloader.getStartTime())));
+							info.setStatus("Đã tải");
+							FileHandle.saveFileCompletedToTxt(info.getFileName(), info.getFileSize(), info.getStatus(),
+									info.getDate(), time, info.getPath());
+							info.setSaveToTxt(true);
+							updateTableRow(info.getFileName(), info.getFileSize(), "Đã tải");
+							addDataToMainTable();
+						}
 					}
-				}
+				});
 			});
 		}));
 		progressUpdateTimeline.setCycleCount(Timeline.INDEFINITE);
@@ -224,58 +226,53 @@ public class MainUI extends Application {
 	}
 
 	public void addDataToMainTable() {
-		String selectedCategory = treeView != null ? treeView.getSelectionModel().getSelectedItem().getValue()
-				: "Đã tải";
-		if (table == null) {
-			this.table = initializeTable();
-		}
-		table.getItems().clear();
-		if (selectedCategory.equals("Đang tải") && listFileDownloadingGlobal != null) {
-			loadTable("Đang tải");
-		} else if (selectedCategory.equals("Chờ tải")) {
-			loadTable("Chờ tải");
-		} else if (selectedCategory.equals("Đã tải")) {
-			loadTable("Đã tải");
+		Platform.runLater(() -> {
+			String selectedCategory = treeView != null ? treeView.getSelectionModel().getSelectedItem().getValue()
+					: "Đã tải";
+
+			if (table == null) {
+				this.table = initializeTable();
+			}
+
+			table.getItems().clear();
+
+			if (selectedCategory.equals("Đang tải")) {
+				loadTableDownloading();
+			} else if (selectedCategory.equals("Chờ tải")) {
+				loadTableWaiting();
+			} else if (selectedCategory.equals("Đã tải")) {
+				loadTableCompleted();
+			}
+		});
+	}
+
+	private void loadTableDownloading() {
+		List<UIObjectGeneral> safeList = new ArrayList<>(listFileDownloadingGlobal);
+		for (UIObjectGeneral i : safeList) {
+			if (i != null && i.downloader != null && !i.downloader.getCompletedFlag()) {
+				table.getItems()
+						.add(new MainTableItem(i.getFileName(), i.getFileSize(), i.getStatus(), i.getDate(), "N/A"));
+			}
 		}
 	}
 
-	public void loadTable(String category) {
-		if (table == null) {
-			this.table = initializeTable();
-			setupTableRowListener();
+	private void loadTableWaiting() {
+		List<objWaiting> waitings = objWaiting.getListWaiting();
+		for (objWaiting objWaiting : waitings) {
+			table.getItems().add(new MainTableItem(objWaiting.getFileName(), objWaiting.getFilesize(), "Chờ tải",
+					objWaiting.getTime(), "N/A"));
 		}
-		switch (category) {
-		case "Đang tải":
-			if (listFileDownloadingGlobal != null) {
-				for (UIObjectGeneral i : listFileDownloadingGlobal) {
-					if (!i.downloader.getCompletedFlag()) {
-						table.getItems().add(
-								new MainTableItem(i.getFileName(), i.getFileSize(), i.getStatus(), i.getDate(), "N/A"));
-					}
-				}
-			}
-			break;
+	}
 
-		case "Chờ tải":
-			List<objWaiting> waitings = objWaiting.getListWaiting();
-			for (objWaiting objWaiting : waitings) {
-				table.getItems().add(new MainTableItem(objWaiting.getFileName(), objWaiting.getFilesize(), "Chờ tải",
-						objWaiting.getTime(), "N/A"));
-			}
-			break;
-
-		case "Đã tải":
-			listFileCompleted = FileHandle.readFileFromTxt("CompletedFileTracking.txt");
-			if (listFileCompleted != null) {
-				for (String i : listFileCompleted) {
-					String[] parts = i.split(",");
+	private void loadTableCompleted() {
+		listFileCompleted = FileHandle.readFileFromTxt("CompletedFileTracking.txt");
+		if (listFileCompleted != null) {
+			for (String i : listFileCompleted) {
+				String[] parts = i.split(",");
+				if (parts.length >= 5) {
 					table.getItems().add(new MainTableItem(parts[0], parts[1], parts[2], parts[3], parts[4]));
 				}
 			}
-			break;
-
-		default:
-			System.out.println("Không xác định được category");
 		}
 	}
 

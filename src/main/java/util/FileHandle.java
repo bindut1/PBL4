@@ -151,14 +151,11 @@ public class FileHandle {
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
              BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
             String currentLine;
-            // Đọc từng dòng từ file gốc
             while ((currentLine = reader.readLine()) != null) {
-                // So sánh dòng hiện tại với dòng cần xóa
                 if (currentLine.trim().equals(lineToDelete.trim())) {
                     found = true;
-                    continue; // Bỏ qua dòng này (không ghi vào file tạm)
+                    continue; 
                 }
-                // Ghi các dòng khác vào file tạm
                 writer.write(currentLine);
                 writer.newLine();
             }
@@ -168,13 +165,11 @@ public class FileHandle {
             return false;
         }
 
-        // Nếu không tìm thấy dòng cần xóa
         if (!found) {
             tempFile.delete();
             return false;
         }
 
-        // Xóa file gốc và đổi tên file tạm thành file gốc
         if (!inputFile.delete()) {
             tempFile.delete();
             return false;

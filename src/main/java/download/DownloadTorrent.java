@@ -1,191 +1,167 @@
 package download;
 
-import com.frostwire.jlibtorrent.*;
-import com.frostwire.jlibtorrent.alerts.*;
-import com.frostwire.jlibtorrent.swig.settings_pack;
+import com.turn.ttorrent.client.Client;
+import com.turn.ttorrent.client.SharedTorrent;
+
 import util.*;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.concurrent.CountDownLatch;
+import java.net.InetAddress;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class DownloadTorrent extends AbstractDownloadObject {
-    private static final int TORRENT_UPLOAD_RATE_LIMIT = 0;
-    private static final int TORRENT_DOWNLOAD_RATE_LIMIT = 0;
-    
-    private SessionManager sessionManager;
-    private TorrentHandle torrentHandle;
-    private final CountDownLatch signal;
-    
-    public DownloadTorrent() {
-        this.runningFlag = false;
-        this.completedFlag = false;
-        this.startTime = 0;
-        this.progress = 0;
-        this.detailText = "";
-        this.lock = new ReentrantLock();
-        this.pauseCondition = lock.newCondition();
-        this.signal = new CountDownLatch(1);
-    }
 
-    @Override
-    public void start(String urlInput, String path) {
-        this.runningFlag = true;
-        this.completedFlag = false;
-        this.url = urlInput;
-        this.path = path;
-        this.detailText = "Đang chuẩn bị tải";
-        this.startTime = System.currentTimeMillis();
-        
-        try {
-            execute();
-        } catch (Exception e) {
-            e.printStackTrace();
-            this.detailText = "Lỗi: " + e.getMessage();
-        } finally {
-            this.runningFlag = false;
-        }
-    }
+	private static final int TORRENT_UPLOAD_RATE_LIMIT = 0;
+	private static final int TORRENT_DOWNLOAD_RATE_LIMIT = 0;
 
-    @Override
-    public void pause() {
-        if (torrentHandle != null && sessionManager != null) {
-            this.runningFlag = false;
-            torrentHandle.pause();
-            this.detailText = "Đã tạm dừng tải";
-        }
-    }
+	private SharedTorrent torrent;
+	private Client client;
 
-    @Override
-    public void resume() {
-        if (torrentHandle != null && sessionManager != null) {
-            this.runningFlag = true;
-            torrentHandle.resume();
-            this.detailText = "Đang tiếp tục tải";
-        }
-    }
+	public DownloadTorrent() {
+		this.runningFlag = false;
+		this.completedFlag = false;
+		this.startTime = 0;
+		this.progress = 0;
+		this.detailText = "";
+		this.lock = new ReentrantLock();
+		this.pauseCondition = lock.newCondition();
+		this.executor = Executors.newFixedThreadPool(5);
+	}
 
-    @Override
-    public void cancel() {
-        if (sessionManager != null) {
-            this.runningFlag = false;
-            try {
-                if (torrentHandle != null) {
-                    torrentHandle.pause();
-                }
-                sessionManager.stop();
-                this.detailText = "Đã hủy tải";
-                if (executor != null) {
-                    executor.shutdownNow();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
+	@Override
+	public void start(String urlInput, String path) {
+		this.runningFlag = true;
+		this.completedFlag = false;
+		this.url = urlInput;
+		this.path = path;
+		this.detailText = "Đang chuẩn bị tải";
+		this.startTime = System.currentTimeMillis();
 
-    private void execute() throws Exception {
-        File torrentFile = new File(this.url);
-        if (!torrentFile.exists()) {
-            throw new FileNotFoundException("Không tìm thấy file torrent");
-        }
+		CompletableFuture.runAsync(() -> {
+			try {
+				downloadTorrent();
+			} catch (Exception e) {
+				e.printStackTrace();
+				this.detailText = "Lỗi: " + e.getMessage();
+				this.runningFlag = false;
+			}
+		}, executor);
+	}
 
-        File downloadDir = new File(this.path);
-        if (!downloadDir.exists()) {
-            downloadDir.mkdirs();
-        }
+	private void downloadTorrent() throws Exception {
+		File torrentFile = new File(this.url);
+		if (!torrentFile.exists()) {
+			throw new FileNotFoundException("Torrent file not found");
+		}
 
-        // Initialize session with settings
-        sessionManager = new SessionManager();
-        
-        SettingsPack settingsPack = new SettingsPack();
-        settingsPack.setInteger(settings_pack.int_types.active_downloads.swigValue(), 4);
-        settingsPack.setInteger(settings_pack.int_types.active_seeds.swigValue(), 4);
-        settingsPack.setInteger(settings_pack.int_types.upload_rate_limit.swigValue(), TORRENT_UPLOAD_RATE_LIMIT);
-        settingsPack.setInteger(settings_pack.int_types.download_rate_limit.swigValue(), TORRENT_DOWNLOAD_RATE_LIMIT);
-        
-        SessionParams params = new SessionParams(settingsPack);
-        sessionManager.start(params);
+		File downloadDir = new File(this.path);
+		if (!downloadDir.exists()) {
+			downloadDir.mkdir();
+		}
 
-        // Add torrent to session
-        TorrentInfo ti = new TorrentInfo(torrentFile);
-        
-        // Use the simplified download method
-//        torrentHandle = sessionManager.download(ti, downloadDir);
-        
-        // Set the priority after getting the handle
-        if (torrentHandle != null) {
-            Priority[] priorities = Priority.array(Priority.NORMAL, ti.numPieces());
-//            torrentHandle.prioritize(priorities);
-        }
+		setUpClient(torrentFile, downloadDir);
+		client.download();
+	}
 
-        // Monitor download progress
-        sessionManager.addListener(new AlertListener() {
-            @Override
-            public int[] types() {
-                return new int[] {
-                    AlertType.STATE_UPDATE.swig(),
-                    AlertType.TORRENT_FINISHED.swig()
-                };
-            }
+	@Override
+	public void cancel() {
+		try {
+			this.detailText = "Đã hủy tải";
+			this.runningFlag = false;
+			this.completedFlag = false;
+			client.stop();
+			executor.shutdownNow();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
-            @Override
-            public void alert(Alert<?> alert) {
-                if (alert instanceof StateUpdateAlert) {
-                    StateUpdateAlert stateAlert = (StateUpdateAlert) alert;
-                    if (stateAlert.status().size() > 0) {
-                        TorrentStatus status = stateAlert.status().get(0);
-                        updateProgress(status);
-                    }
-                } else if (alert instanceof TorrentFinishedAlert) {
-                    completedFlag = true;
-                    detailText = "Tải thành công";
-                    signal.countDown();
-                }
-            }
-        });
+	@Override
+	public void pause() {
+		this.detailText = "Tạm dừng tải";
+		this.runningFlag = false;
+		client.stop();
+	}
 
-        // Wait until download is complete
-        signal.await();
-        sessionManager.stop();
-    }
+	@Override
+	public void resume() {
+		executor.submit(() -> {
+			try {
+				this.runningFlag = true;
+				downloadTorrent();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			lock.lock();
+			try {
+				pauseCondition.signalAll();
+			} finally {
+				lock.unlock();
+			}
+		});
+	}
 
-    private void updateProgress(TorrentStatus status) {
-        if (runningFlag) {
-            double progress = status.progress() * 100;
-            long downloadRate = status.downloadRate();
-            long totalDownload = status.totalDownload();
-            int numPeers = status.numPeers();
-            
-            double currentTime = System.currentTimeMillis();
-            double elapsedTime = (currentTime - this.startTime) / 1000.0;
-            double averageSpeed = totalDownload / elapsedTime;
+	@Override
+	public boolean getRunningFlag() {
+		return this.runningFlag;
+	}
 
-            this.progress = progress / 100;
-            this.detailText = String.format(
-                "Progress: %.2f%% - State: %s - Current Speed: %s/s - Average Speed: %s/s - Peers: %d",
-                progress,
-                status.state().toString(),
-                FileHandle.formatFileSize(downloadRate),
-                FileHandle.formatFileSize((long)averageSpeed),
-                numPeers
-            );
-            System.out.println(detailText);
-        }
-    }
+	public void updateProgress(double progress, double speed, double downloadedBytes, long fileSize,
+			double averageSpeed, int peers) {
+		this.progress = progress / 100;
+		this.detailText = String.format("Progress: %s / %s (%.2f%%) - Speed: %s/s - Average Speed: %s/s - Peers: %d",
+				FileHandle.formatFileSize((long) downloadedBytes), FileHandle.formatFileSize(fileSize), progress,
+				FileHandle.formatFileSize((long) speed), FileHandle.formatFileSize((long) averageSpeed), peers);
+		System.out.println(detailText);
+	}
 
-    @Override
-    public boolean getCompletedFlag() {
-        return this.completedFlag;
-    }
+	public void setUpClient(File torrentFile, File downloadDir) throws Exception {
+		torrent = SharedTorrent.fromFile(torrentFile, downloadDir);
+		torrent.setMaxUploadRate(TORRENT_UPLOAD_RATE_LIMIT);
+		torrent.setMaxDownloadRate(TORRENT_DOWNLOAD_RATE_LIMIT);
+		client = new Client(InetAddress.getLocalHost(), torrent);
 
-    @Override
-    public double getStartTime() {
-        return this.startTime;
-    }
+		long fileSize = client.getTorrent().getSize();
 
-    @Override
-    public boolean getRunningFlag() {
-        return this.runningFlag;
-    }
+		long startTime = System.currentTimeMillis();
+		AtomicLong lastDownloaded = new AtomicLong(0);
+		AtomicLong lastUpdateTime = new AtomicLong(System.currentTimeMillis());
+
+		client.addObserver((o, arg) -> {
+//			float progress = client.getTorrent().getCompletion();
+			long currentTime = System.currentTimeMillis();
+			long timeElapsed = currentTime - lastUpdateTime.get();
+			if (timeElapsed >= 500) {
+				double elapsedTime = currentTime - startTime;
+				long downloadedBytes = client.getTorrent().getDownloaded();
+				float progress = (float) (downloadedBytes * 100.0) / fileSize;
+				long deltaDownloaded = downloadedBytes - lastDownloaded.get();
+				double instantSpeed = deltaDownloaded / (timeElapsed / 1000.0);
+
+				lastDownloaded.set(downloadedBytes);
+				lastUpdateTime.set(currentTime);
+				updateProgress(progress, instantSpeed, downloadedBytes, fileSize, downloadedBytes / elapsedTime,
+						client.getPeers().size());
+
+				if (client.getTorrent().isComplete()) {
+					this.completedFlag = true;
+					client.stop();
+				}
+			}
+		});
+	}
+
+	@Override
+	public boolean getCompletedFlag() {
+		return this.completedFlag;
+	}
+
+	@Override
+	public double getStartTime() {
+		return this.startTime;
+	}
+
 }

@@ -13,7 +13,7 @@ import util.HttpConnection;
 import util.TimeHandle;
 
 public class DownloadDirectLink extends AbstractDownloadObject {
-	private static final int NUM_SEGMENTS = 4;
+	private static final int NUM_SEGMENTS = 5;
 
 	public DownloadDirectLink() {
 		this.progress = 0;
