@@ -115,7 +115,9 @@ public class MainUI extends Application {
 		JFXButton btnSchedule = createActionButton(MaterialDesignIcon.CLOCK, "Lập lịch", "16");
 		btnSchedule.setPrefSize(buttonWidth, buttonHeight);
 		btnSchedule.setOnAction(e -> {
-			handleSchedule();
+			ObservableList<MainTableItem> selectedItems = FXCollections
+					.observableArrayList(table.getSelectionModel().getSelectedItems());
+			handleSchedule(selectedItems);
 		});
 
 		buttonBox.getChildren().addAll(btnAddPath);
@@ -323,30 +325,6 @@ public class MainUI extends Application {
 		return table;
 	}
 
-	private void handleSchedule() {
-		String selectedCategory = treeView != null ? treeView.getSelectionModel().getSelectedItem().getValue()
-				: "Đã tải";
-		ObservableList<MainTableItem> selectedItems = FXCollections
-				.observableArrayList(table.getSelectionModel().getSelectedItems());
-		if (selectedCategory.equals("Chờ tải") && !selectedItems.isEmpty()) {
-			ScheduleUI objScheduleUI = new ScheduleUI(primaryStage);
-			objScheduleUI.showAndWait();
-			String timeString = objScheduleUI.getTime();
-			List<objWaiting> objWaitings = objWaiting.getListWaiting();
-			if (!timeString.equals("")) {
-				for (MainTableItem item : selectedItems) {
-					for (objWaiting waiting : objWaitings) {
-						String selectedFileName = String.valueOf(item.urlProperty().getValue());
-						if (selectedFileName.equals(waiting.getFileName())) {
-							waiting.updateTime(timeString);
-						}
-					}
-				}
-				addDataToMainTable();
-			}
-		}
-	}
-
 	private void handleShutdown() {
 		listFileDownloadingGlobal.forEach(info -> {
 			if (info.downloaderNotNull())
@@ -439,7 +417,8 @@ public class MainUI extends Application {
 
 	public void checkFileSelected(ObservableList<MainTableItem> selectedItems, String txt) {
 		if (selectedItems.isEmpty()) {
-			System.out.println("Chon it nhat 1 file de " + txt);
+			AlertUI alertUI = new AlertUI(primaryStage, "Thông báo", "Chọn ít nhất 1 file để " + txt);
+			alertUI.showAndWait();
 			return;
 		}
 
@@ -452,13 +431,14 @@ public class MainUI extends Application {
 		}
 
 		if (checkInvalidFile) {
-			System.out.println("Chi co the " + txt + " cac file o trang thai Dang tai");
+			AlertUI alertUI = new AlertUI(primaryStage, "Thông báo", "Chỉ có thể " + txt + " các file ở trạng thái Đang tải");
+			alertUI.showAndWait();
 			return;
 		}
 	}
 
 	public void pauseHandle(ObservableList<MainTableItem> selectedItems) {
-		checkFileSelected(selectedItems, "tam dung");
+		checkFileSelected(selectedItems, "Tạm dừng");
 		for (MainTableItem item : selectedItems) {
 			String fileName = item.urlProperty().getValue();
 			for (UIObjectGeneral info : listFileDownloadingGlobal) {
@@ -471,7 +451,7 @@ public class MainUI extends Application {
 	}
 
 	public void resumeHandle(ObservableList<MainTableItem> selectedItems) {
-		checkFileSelected(selectedItems, "tiep tuc");
+		checkFileSelected(selectedItems, "Tiếp tục");
 		for (MainTableItem item : selectedItems) {
 			String fileName = item.urlProperty().getValue();
 			for (UIObjectGeneral info : listFileDownloadingGlobal) {
@@ -485,32 +465,69 @@ public class MainUI extends Application {
 
 	public void deletedHandle(ObservableList<MainTableItem> selectedItems) {
 		if (selectedItems.isEmpty()) {
+			AlertUI alertUI = new AlertUI(primaryStage, "Thông báo", "Chọn ít nhất 1 file để Xóa");
+			alertUI.showAndWait();
 			return;
 		}
+		PromptUI promptUI = new PromptUI(primaryStage, "Xác nhận xóa", "Bạn có chắc chắn muốn xóa?");
+		promptUI.showAndWait();
+		if(promptUI.isResult()) {
+			for (MainTableItem item : selectedItems) {
+				String fileName = item.urlProperty().getValue();
+				String status = item.statusProperty().getValue();
 
-		for (MainTableItem item : selectedItems) {
-			String fileName = item.urlProperty().getValue();
-			String status = item.statusProperty().getValue();
-
-			if (status.contains("Đang tải")) {
-				List<UIObjectGeneral> downloadInfoToCancel = listFileDownloadingGlobal.stream()
-						.filter(info -> info.getFileName().equals(fileName) && info.downloaderNotNull()
-								&& info.downloader.getRunningFlag())
-						.collect(Collectors.toList());
-				downloadInfoToCancel.forEach(info -> info.downloader.cancel());
-				listFileDownloadingGlobal.removeAll(downloadInfoToCancel);
-			} else if (status.contains("Đã tải")) {
-				if (listFileCompleted != null && !listFileCompleted.isEmpty()) {
-					listFileCompleted.stream().filter(info -> info.split(",")[0].equals(fileName)).forEach(info -> {
-						FileHandle.deleteLineFromTxtFile("CompletedFileTracking.txt", info);
-					});
+				if (status.contains("Đang tải")) {
+					List<UIObjectGeneral> downloadInfoToCancel = listFileDownloadingGlobal.stream()
+							.filter(info -> info.getFileName().equals(fileName) && info.downloaderNotNull()
+									&& info.downloader.getRunningFlag())
+							.collect(Collectors.toList());
+					downloadInfoToCancel.forEach(info -> info.downloader.cancel());
+					listFileDownloadingGlobal.removeAll(downloadInfoToCancel);
+				} else if (status.contains("Đã tải")) {
+					if (listFileCompleted != null && !listFileCompleted.isEmpty()) {
+						listFileCompleted.stream().filter(info -> info.split(",")[0].equals(fileName)).forEach(info -> {
+							FileHandle.deleteLineFromTxtFile("CompletedFileTracking.txt", info);
+						});
+					}
+				} else {
+					objWaiting.deleteWaiting(fileName);
 				}
-			} else {
-				objWaiting.deleteWaiting(fileName);
+				table.getItems().remove(item);
 			}
-			table.getItems().remove(item);
 		}
 		addDataToMainTable();
+	}
+	
+	private void handleSchedule(ObservableList<MainTableItem> selectedItems) {
+		if (selectedItems.isEmpty()) {
+			AlertUI alertUI = new AlertUI(primaryStage, "Thông báo", "Chọn ít nhất 1 file để Lập lịch");
+			alertUI.showAndWait();
+			return;
+		}
+		String selectedCategory = treeView != null ? treeView.getSelectionModel().getSelectedItem().getValue()
+				: "Đã tải";
+		if (selectedCategory.equals("Chờ tải") && !selectedItems.isEmpty()) {
+			ScheduleUI objScheduleUI = new ScheduleUI(primaryStage);
+			objScheduleUI.showAndWait();
+			String timeString = objScheduleUI.getTime();
+			List<objWaiting> objWaitings = objWaiting.getListWaiting();
+			if (!timeString.equals("")) {
+				for (MainTableItem item : selectedItems) {
+					for (objWaiting waiting : objWaitings) {
+						String selectedFileName = String.valueOf(item.urlProperty().getValue());
+						if (selectedFileName.equals(waiting.getFileName())) {
+							waiting.updateTime(timeString);
+						}
+					}
+				}
+				addDataToMainTable();
+			}
+		}
+		else {
+			AlertUI alertUI = new AlertUI(primaryStage, "Thông báo", "Chỉ có thể Lập lịch cho file ở trạng thái Chờ tải");
+			alertUI.showAndWait();
+			return;
+		}
 	}
 
 	public static void main(String[] args) {

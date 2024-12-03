@@ -71,7 +71,7 @@ public class AlertUI extends Stage {
 
         Scene scene = new Scene(mainContainer);
         scene.setFill(null);
-        scene.getStylesheets().add(getClass().getResource("/view/style1.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("/utilUI/style1.css").toExternalForm());
         setScene(scene);
 
         Platform.runLater(() -> {

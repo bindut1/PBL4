@@ -17,10 +17,9 @@ import java.util.concurrent.CompletableFuture;
 public class PromptUI extends Stage {
 	private double xOffset = 0;
 	private double yOffset = 0;
-	private CompletableFuture<Boolean> result;
+	private boolean result = false;
 
 	public PromptUI(Stage owner, String title, String message) {
-		result = new CompletableFuture<>();
 
 		initOwner(owner);
 		initModality(Modality.APPLICATION_MODAL);
@@ -40,7 +39,7 @@ public class PromptUI extends Stage {
 
 		JFXButton closeButton = createIconButton(MaterialDesignIcon.CLOSE, "dialog-close-button");
 		closeButton.setOnAction(e -> {
-			result.complete(false);
+			this.result = false;
 			close();
 		});
 
@@ -71,14 +70,14 @@ public class PromptUI extends Stage {
 		JFXButton noButton = new JFXButton("No");
 		noButton.getStyleClass().add("no-button");
 		noButton.setOnAction(e -> {
-			result.complete(false);
+			this.result = false;
 			close();
 		});
 
 		JFXButton yesButton = new JFXButton("Yes");
 		yesButton.getStyleClass().add("yes-button");
 		yesButton.setOnAction(e -> {
-			result.complete(true);
+			this.result = true;
 			close();
 		});
 
@@ -88,7 +87,7 @@ public class PromptUI extends Stage {
 
 		Scene scene = new Scene(mainContainer);
 		scene.setFill(null);
-		scene.getStylesheets().add(getClass().getResource("/view/style1.css").toExternalForm());
+		scene.getStylesheets().add(getClass().getResource("/utilUI/style1.css").toExternalForm());
 		setScene(scene);
 
 		Platform.runLater(() -> {
@@ -97,6 +96,14 @@ public class PromptUI extends Stage {
 				setY(owner.getY() + (owner.getHeight() - getHeight()) / 2);
 			}
 		});
+	}
+
+	public boolean isResult() {
+		return result;
+	}
+
+	public void setResult(boolean result) {
+		this.result = result;
 	}
 
 	private JFXButton createIconButton(MaterialDesignIcon icon, String styleClass) {
@@ -108,9 +115,4 @@ public class PromptUI extends Stage {
 		return button;
 	}
 
-	public static CompletableFuture<Boolean> show(Stage owner, String title, String message) {
-		PromptUI prompt = new PromptUI(owner, title, message);
-		prompt.showAndWait();
-		return prompt.result;
-	}
 }
