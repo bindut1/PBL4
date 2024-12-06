@@ -289,6 +289,9 @@ public class DownloadUI extends Stage {
 						} else {
 							i.setStatus("Đang tải");
 							new Thread(() -> {
+								String tempName = FileHandle.ensureUniqueFileName(i.getPath(), i.getFileName());
+								i.setFileName(tempName);
+								i.downloader.setFileName(tempName);
 								mainUI.listFileDownloadingGlobal.add(i);
 								mainUI.addDataToMainTable();
 								i.start();

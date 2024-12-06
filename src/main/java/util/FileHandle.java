@@ -22,6 +22,10 @@ import com.google.common.io.Files;
 import com.turn.ttorrent.client.Client;
 import com.turn.ttorrent.client.SharedTorrent;
 
+import view.MainUI;
+import view.UIObjectGeneral;
+import view.objWaiting;
+
 public class FileHandle {
 	private static final DecimalFormat df = new DecimalFormat("#.##");
 
@@ -75,8 +79,41 @@ public class FileHandle {
 	}
 
 	private static String sanitizeFileName(String fileName) {
-		return fileName.replaceAll("[\\\\/:*?\"<>|]", "_");
+		// Thay thế chuỗi gạch dưới liên tiếp thành một gạch dưới duy nhất
+		fileName = fileName.replaceAll("_+", "_");
+		fileName = fileName.replaceAll("[\\\\/:*?\"<>|]", "_");
+		return fileName.replace("%20", " ");
 	}
+	
+	public static String ensureUniqueFileName(String folderPath, String fileName) {
+        File folder = new File(folderPath);
+        int dotIndex = fileName.lastIndexOf(".");
+        String name = (dotIndex > 0) ? fileName.substring(0, dotIndex) : fileName;
+        String extension = (dotIndex > 0) ? fileName.substring(dotIndex) : "";
+        
+        String newFileName = fileName;
+        int counter = 1;
+        while (new File(folder, newFileName).exists()||isFileNameInList(newFileName)) {
+            newFileName = name + " (" + counter + ")" + extension;
+            counter++;
+        }
+        return newFileName;
+    }
+	
+	private static boolean isFileNameInList(String fileName) {
+        for (objWaiting waiting : objWaiting.getListWaiting()) {
+            if (waiting.getFileName().equals(fileName)) {
+                return true;
+            }
+        }
+        for (UIObjectGeneral obj : MainUI.listFileDownloadingGlobal) {
+            if (obj.getFileName().equals(fileName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
 	public static String getFileNameTorrent(String url, String path) throws Exception {
 		File torrentFile = new File(url);

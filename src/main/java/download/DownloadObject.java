@@ -4,17 +4,14 @@ import view.ProgressUI;
 
 public class DownloadObject {
 	public AbstractDownloadObject downloader;
-	
-	protected String urlInput;
-	protected String path;
-	
+		
 	public DownloadObject(String url, String path) {
-		this.urlInput = url;
-		this.path = path;
-		if (urlInput.endsWith(".torrent"))
+		if (url.endsWith(".torrent"))
 			this.downloader = new DownloadTorrent();
 		else
 			this.downloader = new DownloadDirectLink();
+		this.downloader.setPath(path);
+		this.downloader.setUrl(url);
 	}
 
 	public boolean downloaderNotNull() {
@@ -25,7 +22,7 @@ public class DownloadObject {
 	}
 
 	public void start() {
-		this.downloader.start(this.urlInput, this.path);
+		this.downloader.start();
 	}
 
 }

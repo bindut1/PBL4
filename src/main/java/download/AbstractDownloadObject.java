@@ -16,11 +16,12 @@ public abstract class AbstractDownloadObject {
 
 	protected String url;
 	protected String path;
+	protected String fileName;
 
 	protected double progress;
 	protected String detailText;
 
-	public abstract void start(String urlInput, String path);
+	public abstract void start();
 
 	public abstract void pause();
 
@@ -31,9 +32,9 @@ public abstract class AbstractDownloadObject {
 	public abstract boolean getRunningFlag();
 
 	public abstract boolean getCompletedFlag();
-	
+
 	public abstract double getStartTime();
-	
+
 	public String getUrl() {
 		return url;
 	}
@@ -56,5 +57,13 @@ public abstract class AbstractDownloadObject {
 
 	public String getDetailText() {
 		return this.detailText;
+	}
+
+	public String getFileName() {
+		return fileName;
+	}
+
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
 	}
 }

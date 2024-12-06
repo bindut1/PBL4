@@ -24,6 +24,7 @@ public class objWaiting {
 		try {
 			String fileName = (checkTypeFile) ? FileHandle.getFileNameTorrent(url, savePath)
 					: FileHandle.getFileNameFromConnectHttp(url);
+			if (!checkTypeFile) fileName = FileHandle.ensureUniqueFileName(this.savePath, fileName);
 			this.filename = fileName;
 		} catch (Exception e) {
 			e.printStackTrace();

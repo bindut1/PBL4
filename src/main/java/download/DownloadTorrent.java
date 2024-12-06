@@ -32,11 +32,9 @@ public class DownloadTorrent extends AbstractDownloadObject {
 	}
 
 	@Override
-	public void start(String urlInput, String path) {
+	public void start() {
 		this.runningFlag = true;
 		this.completedFlag = false;
-		this.url = urlInput;
-		this.path = path;
 		this.detailText = "Đang chuẩn bị tải";
 		this.startTime = System.currentTimeMillis();
 

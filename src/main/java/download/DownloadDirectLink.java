@@ -25,19 +25,18 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 		this.executor = Executors.newFixedThreadPool(NUM_SEGMENTS + 1);
 	}
 
-	public void start(String urlInput, String pathInput) {
+	public void start() {
 		this.detailText = "Đang chuẩn bị tải!";
-		this.url = urlInput;
 		this.startTime = TimeHandle.getCurrentTime();
 		try {
-			URL url = new URL(urlInput);
+			URL url = new URL(this.getUrl());
 			String protocol = url.getProtocol().toLowerCase();
 			switch (protocol) {
 			case "http":
 			case "https":
 				this.runningFlag = true;
 				this.completedFlag = false;
-				downloadDirectLink(urlInput, pathInput);
+				downloadDirectLink();
 				break;
 			default:
 				this.detailText = "Unsupported protocol: " + protocol;
@@ -84,14 +83,13 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 		return this.runningFlag;
 	}
 
-	private void downloadDirectLink(String fileUrl, String path) throws IOException {
-		URL url = new URL(fileUrl);
+	private void downloadDirectLink() throws IOException {
+		URL url = new URL(this.getUrl());
 		HttpURLConnection connection = HttpConnection.openConnection(url);
 		boolean acceptRanges = connection.getHeaderField("Accept-Ranges") != null;
 		long fileSize = connection.getContentLengthLong();
-		String fileName = FileHandle.getFileName(connection, fileUrl);
 
-		File outputFile = new File(path, fileName);
+		File outputFile = new File(this.path, this.fileName);
 		if (!outputFile.getParentFile().exists()) {
 			outputFile.getParentFile().mkdirs();
 			synchronized (outputFile) {
@@ -117,7 +115,7 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 				// Thêm các luồng tải phân đoạn vào executor
 				futures.add(executor.submit(() -> {
 					try {
-						downloadSegment(fileUrl, startByte, endByte, outputFile, segmentNumber, totalBytesDownloaded);
+						downloadSegment(this.url, startByte, endByte, outputFile, segmentNumber, totalBytesDownloaded);
 					} catch (IOException e) {
 						e.printStackTrace();
 						this.detailText = "Error in downloading segment: " + e.getMessage();
