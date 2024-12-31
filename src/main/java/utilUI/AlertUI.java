@@ -29,7 +29,7 @@ public class AlertUI extends Stage {
         mainContainer.getStyleClass().add("dialog-container");
         mainContainer.setPadding(new Insets(0));
         setWidth(300);
-        setHeight(150);
+        setHeight(160);
 
         JFXToolbar header = new JFXToolbar();
         header.getStyleClass().add("dialog-header");

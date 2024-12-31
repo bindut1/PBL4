@@ -45,6 +45,8 @@ public class MainUI extends Application {
 	public DownloadUI objDownLoadUI;
 	private TableView<MainTableItem> table;
 	private TreeView<String> treeView;
+	private JFXButton btnPause;
+	private JFXButton btnResume;
 	public Map<UIObjectGeneral, ProgressUI> progressUIMap = new HashMap<>();
 
 	@Override
@@ -91,14 +93,14 @@ public class MainUI extends Application {
 			objDownLoadUI.showAndWait();
 			addDataToMainTable();
 		});
-		JFXButton btnResume = createActionButton(MaterialDesignIcon.PLAY, "Tiếp tục", "16");
+		btnResume = createActionButton(MaterialDesignIcon.PLAY, "Tiếp tục", "16");
 		btnResume.setPrefSize(buttonWidth, buttonHeight);
 		btnResume.setOnAction(e -> {
 			ObservableList<MainTableItem> selectedItems = FXCollections
 					.observableArrayList(table.getSelectionModel().getSelectedItems());
 			resumeHandle(selectedItems);
 		});
-		JFXButton btnPause = createActionButton(MaterialDesignIcon.PAUSE, "Dừng", "16");
+		btnPause = createActionButton(MaterialDesignIcon.PAUSE, "Dừng", "16");
 		btnPause.setPrefSize(buttonWidth, buttonHeight);
 		btnPause.setOnAction(e -> {
 			ObservableList<MainTableItem> selectedItems = FXCollections
@@ -119,13 +121,19 @@ public class MainUI extends Application {
 					.observableArrayList(table.getSelectionModel().getSelectedItems());
 			handleSchedule(selectedItems);
 		});
+		JFXButton btnSettings = createActionButton(MaterialDesignIcon.SETTINGS, "Cài đặt", "16");
+		btnSettings.setPrefSize(buttonWidth, buttonHeight);
+		btnSettings.setOnAction(e -> {
+			SettingUI objSetting = new SettingUI(primaryStage);
+			objSetting.showAndWait();
+		});
 
 		buttonBox.getChildren().addAll(btnAddPath);
 		HBox footerButtonBox = new HBox(10);
 		footerButtonBox.getStyleClass().add("footer-button-box");
 		footerButtonBox.setAlignment(Pos.CENTER);
 		footerButtonBox.setPadding(new Insets(10));
-		footerButtonBox.getChildren().addAll(btnPause, btnResume, btnDelete, btnSchedule);
+		footerButtonBox.getChildren().addAll(btnPause, btnResume, btnDelete, btnSchedule, btnSettings);
 		toolBarContainer.getChildren().add(buttonBox);
 		root.setBottom(footerButtonBox);
 		this.treeView = initializeTreeView();
@@ -418,36 +426,53 @@ public class MainUI extends Application {
 		}
 	}
 
-	public void checkFileSelected(ObservableList<MainTableItem> selectedItems, String txt) {
+	public void checkFileSelected(ObservableList<MainTableItem> selectedItems, String txt, boolean isPauseAction) {
 		if (selectedItems.isEmpty()) {
 			AlertUI alertUI = new AlertUI(primaryStage, "Thông báo", "Chọn ít nhất 1 file để " + txt);
 			alertUI.showAndWait();
 			return;
 		}
 
-		boolean checkInvalidFile = false;
+		// Kiểm tra nếu có file torrent trong danh sách
 		for (MainTableItem item : selectedItems) {
-			if (!item.statusProperty().getValue().contains("Đang tải")) {
-				checkInvalidFile = true;
+			String fileName = item.urlProperty().getValue();
+			for (UIObjectGeneral info : listFileDownloadingGlobal) {
+				if (info.getFileName().equals(fileName) && info.getUrl().endsWith(".torrent")) {
+					AlertUI alertUI = new AlertUI(primaryStage, "Thông báo",
+							"Trong các file bạn đã chọn có tồn tại file torrent, không hỗ trợ " + txt
+									+ " với file này.");
+					alertUI.showAndWait();
+					return;
+				}
+			}
+		}
+
+		// Kiểm tra trạng thái file (chỉ file hợp lệ mới được thực hiện hành động)
+		boolean hasValidFile = false;
+		for (MainTableItem item : selectedItems) {
+			String status = item.statusProperty().getValue();
+			if (isPauseAction && status.contains("Đang tải")) {
+				hasValidFile = true;
+				break;
+			} else if (!isPauseAction && status.contains("Tạm dừng")) {
+				hasValidFile = true;
 				break;
 			}
 		}
 
-		if (checkInvalidFile) {
-			AlertUI alertUI = new AlertUI(primaryStage, "Thông báo",
-					"Chỉ có thể " + txt + " các file ở trạng thái Đang tải");
+		if (!hasValidFile) {
+			AlertUI alertUI = new AlertUI(primaryStage, "Thông báo", "Không thể " + txt + " các file này.");
 			alertUI.showAndWait();
-			return;
 		}
 	}
 
 	public void pauseHandle(ObservableList<MainTableItem> selectedItems) {
-		checkFileSelected(selectedItems, "Tạm dừng");
+		checkFileSelected(selectedItems, "Tạm dừng", true);
 		for (MainTableItem item : selectedItems) {
 			String fileName = item.urlProperty().getValue();
 			for (UIObjectGeneral info : listFileDownloadingGlobal) {
-				if (info.getFileName().equals(fileName) && info.downloaderNotNull()
-						&& info.downloader.getRunningFlag()) {
+				if (info.getFileName().equals(fileName) && info.downloaderNotNull() && info.downloader.getRunningFlag()
+						&& !info.getUrl().endsWith(".torrent")) {
 					info.downloader.pause();
 				}
 			}
@@ -455,12 +480,12 @@ public class MainUI extends Application {
 	}
 
 	public void resumeHandle(ObservableList<MainTableItem> selectedItems) {
-		checkFileSelected(selectedItems, "Tiếp tục");
+		checkFileSelected(selectedItems, "Tiếp tục", false);
 		for (MainTableItem item : selectedItems) {
 			String fileName = item.urlProperty().getValue();
 			for (UIObjectGeneral info : listFileDownloadingGlobal) {
-				if (info.getFileName().equals(fileName) && info.downloaderNotNull()
-						&& !info.downloader.getRunningFlag()) {
+				if (info.getFileName().equals(fileName) && !info.getUrl().endsWith(".torrent")
+						&& info.downloaderNotNull() && !info.downloader.getRunningFlag()) {
 					info.downloader.resume();
 				}
 			}
@@ -535,15 +560,15 @@ public class MainUI extends Application {
 	}
 
 	public void handleClose() {
-		if(!listFileDownloadingGlobal.isEmpty()) {
-			PromptUI promptUI = new PromptUI(primaryStage, "Xác nhận đóng", "Đóng chương trình sẽ hủy bỏ tất cả những file đang tải. Bạn có muốn đóng?");
+		if (!listFileDownloadingGlobal.isEmpty()) {
+			PromptUI promptUI = new PromptUI(primaryStage, "Xác nhận đóng",
+					"Đóng chương trình sẽ hủy bỏ tất cả những file đang tải. Bạn có muốn đóng?");
 			promptUI.showAndWait();
 			if (promptUI.isResult()) {
 				handleShutdown();
 				primaryStage.close();
 			}
-		}
-		else {
+		} else {
 			primaryStage.close();
 		}
 	}

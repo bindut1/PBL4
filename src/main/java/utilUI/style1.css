@@ -127,19 +127,41 @@ HBox {
 
 /* Cập nhật style cho các nút */
 .yes-button {
-    -fx-background-color: #3498db;
-    -fx-text-fill: white;
+	-fx-background-color: #3498db;
+	-fx-text-fill: white;
 }
 
 .yes-button:hover {
-    -fx-background-color: #2980b9;
+	-fx-background-color: #2980b9;
 }
 
 .no-button {
-    -fx-background-color: #e7e7e7;
-    -fx-text-fill: black;
+	-fx-background-color: #e7e7e7;
+	-fx-text-fill: black;
 }
 
 .no-button:hover {
-    -fx-background-color: #ecf0f1;
+	-fx-background-color: #ecf0f1;
+}
+
+/* Cập nhật kiểu cho nút OK */
+.ok-button {
+	-fx-background-color: #3498db;
+	-fx-text-fill: white;
+	-fx-padding: 5 10; /* Giảm kích thước padding */
+	-fx-font-size: 12px; /* Giảm kích thước font */
+}
+
+.save-button {
+	-fx-background-color: #3498db; /* Màu xanh lá */
+	-fx-text-fill: white; /* Chữ màu trắng */
+	-fx-padding: 7 12; /* Giảm kích thước padding */
+}
+
+.save-button:hover {
+	-fx-background-color: #368cda; /* Màu xanh đậm hơn khi hover */
+}
+
+.save-button:pressed {
+	-fx-background-color: #0f0fbf; /* Màu tối hơn khi nhấn */
 }

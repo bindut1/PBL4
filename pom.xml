@@ -102,13 +102,6 @@
 			<version>9.0.10</version>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/com.frostwire/jlibtorrent -->
-		<dependency>
-			<groupId>com.frostwire</groupId>
-			<artifactId>jlibtorrent</artifactId>
-			<version>1.2.0.18</version>
-		</dependency>
-
 
 	</dependencies>
 	<build>
