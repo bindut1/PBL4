@@ -33,6 +33,14 @@ public class DownloadWaiting {
 			e.printStackTrace();
 		}
 	}
+	
+	public DownloadWaiting(String url, String filesize, String savePath, String time, String fileName) {
+		this.url = url;
+		this.filesize = filesize;
+		this.savePath = savePath;
+		this.time = time;
+		this.filename = fileName;
+	}
 
 	public static List<DownloadWaiting> getListWaiting() {
 		if (!firstcall)
@@ -65,6 +73,11 @@ public class DownloadWaiting {
 		FileHandle.saveFileWaitingToTxt(url, sizefile, path, "N/A");
 		waitings.add(new DownloadWaiting(url, sizefile, path, "N/A"));
 	}
+	
+	public static void addWaiting(String url, String sizefile, String path, String fileName) {
+		FileHandle.saveFileWaitingToTxt(url, sizefile, path, "N/A");
+		waitings.add(new DownloadWaiting(url, sizefile, path, "N/A", fileName));
+	}
 
 	public static void addWaitingWithDateCurrent(String url, String sizefile, String path) {
 		LocalDateTime now = LocalDateTime.now();
@@ -86,30 +99,28 @@ public class DownloadWaiting {
 	}
 
 	public static void handelWaiting(MainUI mainUI) {
-		if (Downloading.getCountDownloading()>=Downloading.getMaxDownloading()) return;
-		List<Downloading> downloadFiles = new ArrayList<Downloading>();
+		if (Downloading.getCountDownloading() >= Downloading.getMaxDownloading())
+			return;
 		waitings.removeIf(objWaiting -> {
 			long waitingTimeMillis = TimeHandle.stringToTimeMillis(objWaiting.getTime());
 			long currentTimeMillis = (long) TimeHandle.getCurrentTime();
-			if (waitingTimeMillis != 0 && waitingTimeMillis <= currentTimeMillis) {
-				downloadFiles.add(new Downloading(objWaiting));
-				FileHandle.deleteLineFromTxtFile("WaitingFileTracking.txt", convertToStringTxt(objWaiting));
-				return true;
-			}
+
+			if (waitingTimeMillis != 0 && waitingTimeMillis <= currentTimeMillis)
+				if (Downloading.getCountDownloading() < Downloading.getMaxDownloading()) {
+					FileHandle.deleteLineFromTxtFile("WaitingFileTracking.txt", convertToStringTxt(objWaiting));
+					Downloading.incrementCountDownloading();
+
+					new Thread(() -> {
+						Downloading downloading = new Downloading(objWaiting);
+						MainUI.listFileDownloadingGlobal.add(downloading);
+						mainUI.addDataToMainTable();
+						downloading.start();
+						Downloading.decrementCountDownloading();
+					}).start();
+					return true;
+				}
 			return false;
 		});
-		if (!downloadFiles.isEmpty()) {
-			for (Downloading uiObjectGeneral : downloadFiles) {
-				if (Downloading.getCountDownloading()>=Downloading.getMaxDownloading()) break;
-				new Thread(() -> {
-					Downloading.incrementCountDownloading();
-					MainUI.listFileDownloadingGlobal.add(uiObjectGeneral);
-					mainUI.addDataToMainTable();
-					uiObjectGeneral.start();
-					Downloading.decrementCountDownloading();
-				}).start();
-			}
-		}
 	}
 
 	private static String convertToStringTxt(DownloadWaiting waiting) {

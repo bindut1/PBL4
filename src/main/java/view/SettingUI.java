@@ -3,6 +3,8 @@ package view;
 import com.jfoenix.controls.*;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
+import download.DownloadDirectLink;
+import downloadUI.Downloading;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -20,9 +22,9 @@ public class SettingUI extends Stage {
     private double xOffset = 0;
     private double yOffset = 0;
 
-    private int maxFiles = 5;    // Số file tải tối đa mặc định
-    private int maxThreads = 5; // Số luồng tải mặc định
-    private int trunkSize = 1024; // Dung lượng mỗi trunk mặc định (KB)
+    private static int maxFiles = 5;    // Số file tải tối đa mặc định
+    private static int maxThreads = 5; // Số luồng tải mặc định
+    private static int trunkSize = 1024; // Dung lượng mỗi trunk mặc định (KB)
 
     public SettingUI(Stage owner) {
         initOwner(owner);
@@ -80,9 +82,9 @@ public class SettingUI extends Stage {
         JFXButton saveButton = new JFXButton("Lưu");
         saveButton.getStyleClass().add("save-button");
         saveButton.setOnAction(e -> {
-            System.out.println("Số file tải tối đa: " + maxFiles);
-            System.out.println("Số luồng tải: " + maxThreads);
-            System.out.println("Dung lượng mỗi trunk: " + trunkSize + " KB");
+        	Downloading.setMaxDownloading(maxFiles);
+        	DownloadDirectLink.SetBUFFER(trunkSize);
+        	DownloadDirectLink.SetNUM_SEGMENTS(maxThreads);
             close();
         });
 

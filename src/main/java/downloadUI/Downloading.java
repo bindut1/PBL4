@@ -12,7 +12,7 @@ import java.util.Date;
 import java.util.List;
 
 public class Downloading extends DownloadObject {
-	private static int maxDownloading = 1;
+	private static int maxDownloading = 5;
 	private static int countDownloading = 0;
 
 	private String url;
@@ -54,6 +54,7 @@ public class Downloading extends DownloadObject {
 			long fileSize = (checkTypeFile) ? FileHandle.getFileSizeTorrent(this.getUrl(), this.getPath())
 					: FileHandle.getFileSizeFromConnectHttp(this.getUrl());
 			this.setFileName(fileName);
+			this.downloader.setFileName(fileName);
 			this.setFileSize(FileHandle.formatFileSize(fileSize));
 			this.setDate(date);
 		} catch (Exception e) {
@@ -62,7 +63,7 @@ public class Downloading extends DownloadObject {
 
 	}
 
-	public static List<Downloading> convertDownloadItemToUIObjectGeneral(List<DownloadItem> items) {
+	public static List<Downloading> convertDownloadItemToDownloading(List<DownloadItem> items) {
 		List<Downloading> uiObjectList = new ArrayList<>();
 		if (items == null) {
 			System.out.println("List downloadItems la null");
@@ -82,19 +83,19 @@ public class Downloading extends DownloadObject {
 	public static void handleListDownload(MainUI mainUI, List<Downloading> downloadFiles) {
 		if (!downloadFiles.isEmpty()) {
 			for (Downloading i : downloadFiles) {
-				if (!i.isSelected()) {
-					DownloadWaiting.addWaiting(i.getUrl(), i.getFileSize(), i.getPath());
+				if (!i.isSelected()) { 
+					DownloadWaiting.addWaiting(i.getUrl(), i.getFileSize(), i.getPath(), i.getFileName());
 					mainUI.addDataToMainTable();
 				} else if (Downloading.getCountDownloading() < Downloading.getMaxDownloading()) {
 					i.setStatus("Đang tải");
 					Downloading.incrementCountDownloading();
-					String tempName = FileHandle.ensureUniqueFileName(i.getPath(), i.getFileName());
-					i.setFileName(tempName);
-					i.downloader.setFileName(tempName);
-					mainUI.listFileDownloadingGlobal.add(i);
-					mainUI.addDataToMainTable();
 					System.out.println("direct " + Downloading.getCountDownloading());
 					new Thread(() -> {
+						String tempName = FileHandle.ensureUniqueFileName(i.getPath(), i.getFileName());
+						i.setFileName(tempName);
+						i.downloader.setFileName(tempName);
+						mainUI.listFileDownloadingGlobal.add(i);
+						mainUI.addDataToMainTable();
 						i.start();
 						Downloading.decrementCountDownloading();
 					}).start();
@@ -108,12 +109,15 @@ public class Downloading extends DownloadObject {
 	}
 
 	public static synchronized int getMaxDownloading() {
-		return Downloading.maxDownloading;
+		synchronized (Downloading.class) {
+			return Downloading.maxDownloading;
+		}
+		
 	}
 
 	public static synchronized void setMaxDownloading(int max) {
 		synchronized (Downloading.class) {
-			Downloading.countDownloading = max;
+			Downloading.maxDownloading = max;
 		}
 	}
 

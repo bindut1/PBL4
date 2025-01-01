@@ -259,7 +259,7 @@ public class DownloadUI extends Stage {
 	public void handleDownload(Stage owner) {
 		new Thread(() -> {
 			try {
-				List<Downloading> downloadFiles = Downloading.convertDownloadItemToUIObjectGeneral(downloadItems);
+				List<Downloading> downloadFiles = Downloading.convertDownloadItemToDownloading(downloadItems);
 				Downloading.handleListDownload(mainUI, downloadFiles);
 				Platform.runLater(() -> {
 					downloadItems.clear();

@@ -14,16 +14,22 @@ import util.HttpConnection;
 import util.TimeHandle;
 
 public class DownloadDirectLink extends AbstractDownloadObject {
-	private static final int NUM_SEGMENTS = 5;
-
+	private static int NUM_SEGMENTS = 5;
+	private static int BUFFER = 1024 * 1000;
+	private int num_segment;
+	private int trunkSize;
 	public DownloadDirectLink() {
+		synchronized (DownloadDirectLink.class) {
+			this.num_segment = DownloadDirectLink.NUM_SEGMENTS;
+			this.trunkSize = DownloadDirectLink.BUFFER;
+		}
 		this.progress = 0;
 		this.startTime = 0;
 		this.runningFlag = false;
 		this.completedFlag = false;
 		this.lock = new ReentrantLock();
 		this.pauseCondition = lock.newCondition();
-		this.executor = Executors.newFixedThreadPool(NUM_SEGMENTS + 1);
+		this.executor = Executors.newFixedThreadPool(this.num_segment + 1);
 	}
 
 	public void start() {
@@ -105,12 +111,12 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 		}
 		AtomicLong totalBytesDownloaded = new AtomicLong(0);
 		if (acceptRanges && fileSize > 0) {
-			long segmentSize = (long) Math.ceil((double) fileSize / NUM_SEGMENTS);
+			long segmentSize = (long) Math.ceil((double) fileSize / this.num_segment);
 
 			List<Future<?>> futures = new ArrayList<>();
-			for (int i = 0; i < NUM_SEGMENTS; i++) {
+			for (int i = 0; i < this.num_segment; i++) {
 				long startByte = i * segmentSize;
-				long endByte = (i == NUM_SEGMENTS - 1) ? fileSize - 1 : (i + 1) * segmentSize - 1;
+				long endByte = (i == this.num_segment - 1) ? fileSize - 1 : (i + 1) * segmentSize - 1;
 				final int segmentNumber = i;
 
 				// Thêm các luồng tải phân đoạn vào executor
@@ -143,7 +149,7 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 		try {
 			long currentPosition = startByte;
 			raf = new RandomAccessFile(outputFile, "rw");
-			byte[] buffer = new byte[25600];
+			byte[] buffer = new byte[this.trunkSize];
 			int bytesRead;
 			long bytesDownloaded = 0;
 			double currentTime;
@@ -185,7 +191,7 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 
 				// http1
 				if (connectionOrFile instanceof HttpURLConnection) {
-					//System.out.println("Xử lý HTTP/1.1...");
+					// System.out.println("Xử lý HTTP/1.1...");
 					if (in == null) {
 						in = ((HttpURLConnection) connectionOrFile).getInputStream();
 					}
@@ -347,7 +353,7 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 		this.detailText = "Kích thước file không xác định, hệ thống sẽ thực hiện tải thông thường!";
 		this.detailText = ("Vui lòng đợi giây lát . . .");
 		try (InputStream in = connection.getInputStream(); FileOutputStream out = new FileOutputStream(outputFile)) {
-			byte[] buffer = new byte[25600];
+			byte[] buffer = new byte[this.trunkSize];
 			int bytesRead;
 			while ((bytesRead = in.read(buffer)) != -1) {
 				out.write(buffer, 0, bytesRead);
@@ -366,6 +372,19 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 	@Override
 	public double getStartTime() {
 		return this.startTime;
+	}
+
+	public static void SetNUM_SEGMENTS(int num) {
+		synchronized (DownloadDirectLink.class) {
+			DownloadDirectLink.NUM_SEGMENTS = num;
+		}
+
+	}
+
+	public static void SetBUFFER(int buffer) {
+		synchronized (DownloadDirectLink.class) {
+			DownloadDirectLink.BUFFER = buffer;
+		}
 	}
 
 }
