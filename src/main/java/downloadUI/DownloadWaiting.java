@@ -19,11 +19,15 @@ public class DownloadWaiting {
 
 	public DownloadWaiting(String url, String filesize, String savePath, String time) {
 		this.url = url;
-		this.filesize = filesize;
+		boolean checkTypeFile = url.endsWith(".torrent");
 		this.savePath = savePath;
 		this.time = time;
-		boolean checkTypeFile = url.endsWith(".torrent");
+
 		try {
+			long tmp = (checkTypeFile) ? FileHandle.getFileSizeTorrent(this.getUrl(), savePath)
+					: FileHandle.getFileSizeFromConnectHttp(this.getUrl());
+			this.filesize = (FileHandle.formatFileSize(tmp));
+			
 			String fileName = (checkTypeFile) ? FileHandle.getFileNameTorrent(url, savePath)
 					: FileHandle.getFileNameFromConnectHttp(url);
 			if (!checkTypeFile)
@@ -32,14 +36,6 @@ public class DownloadWaiting {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
-	
-	public DownloadWaiting(String url, String filesize, String savePath, String time, String fileName) {
-		this.url = url;
-		this.filesize = filesize;
-		this.savePath = savePath;
-		this.time = time;
-		this.filename = fileName;
 	}
 
 	public static List<DownloadWaiting> getListWaiting() {
@@ -74,11 +70,6 @@ public class DownloadWaiting {
 		waitings.add(new DownloadWaiting(url, sizefile, path, "N/A"));
 	}
 	
-	public static void addWaiting(String url, String sizefile, String path, String fileName) {
-		FileHandle.saveFileWaitingToTxt(url, sizefile, path, "N/A");
-		waitings.add(new DownloadWaiting(url, sizefile, path, "N/A", fileName));
-	}
-
 	public static void addWaitingWithDateCurrent(String url, String sizefile, String path) {
 		LocalDateTime now = LocalDateTime.now();
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");

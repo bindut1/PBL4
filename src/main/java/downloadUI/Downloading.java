@@ -53,6 +53,8 @@ public class Downloading extends DownloadObject {
 					: FileHandle.getFileNameFromConnectHttp(this.getUrl());
 			long fileSize = (checkTypeFile) ? FileHandle.getFileSizeTorrent(this.getUrl(), this.getPath())
 					: FileHandle.getFileSizeFromConnectHttp(this.getUrl());
+			if (!checkTypeFile)
+				fileName = FileHandle.ensureUniqueFileName(this.path, fileName);
 			this.setFileName(fileName);
 			this.downloader.setFileName(fileName);
 			this.setFileSize(FileHandle.formatFileSize(fileSize));
@@ -60,7 +62,6 @@ public class Downloading extends DownloadObject {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
 	}
 
 	public static List<Downloading> convertDownloadItemToDownloading(List<DownloadItem> items) {
@@ -73,7 +74,6 @@ public class Downloading extends DownloadObject {
 				uiObject.setUrl(item.url.get());
 				uiObject.setPath(item.savePath.get());
 				uiObject.setSelected(item.selected.get());
-				uiObject.updateInfor();
 				uiObjectList.add(uiObject);
 			}
 		}
@@ -83,17 +83,16 @@ public class Downloading extends DownloadObject {
 	public static void handleListDownload(MainUI mainUI, List<Downloading> downloadFiles) {
 		if (!downloadFiles.isEmpty()) {
 			for (Downloading i : downloadFiles) {
-				if (!i.isSelected()) { 
-					DownloadWaiting.addWaiting(i.getUrl(), i.getFileSize(), i.getPath(), i.getFileName());
+				if (!i.isSelected()) {
+					i.updateInfor();
+					DownloadWaiting.addWaiting(i.getUrl(), i.getFileSize(), i.getPath());
 					mainUI.addDataToMainTable();
 				} else if (Downloading.getCountDownloading() < Downloading.getMaxDownloading()) {
 					i.setStatus("Đang tải");
 					Downloading.incrementCountDownloading();
 					System.out.println("direct " + Downloading.getCountDownloading());
 					new Thread(() -> {
-						String tempName = FileHandle.ensureUniqueFileName(i.getPath(), i.getFileName());
-						i.setFileName(tempName);
-						i.downloader.setFileName(tempName);
+						i.updateInfor();
 						mainUI.listFileDownloadingGlobal.add(i);
 						mainUI.addDataToMainTable();
 						i.start();
