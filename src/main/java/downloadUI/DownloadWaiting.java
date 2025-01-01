@@ -1,21 +1,23 @@
-package view;
+package downloadUI;
 
 import java.util.List;
-
-import net.bytebuddy.asm.Advice.This;
 import util.*;
+import view.MainUI;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
-public class objWaiting {
+public class DownloadWaiting {
 	private String url;
 	private String filesize;
 	private String savePath;
 	private String time = "N/A";
 	private String filename;
-	private static List<objWaiting> waitings = new ArrayList<>();
+	private static List<DownloadWaiting> waitings = new ArrayList<>();
 	private static boolean firstcall = true;
 
-	public objWaiting(String url, String filesize, String savePath, String time) {
+	public DownloadWaiting(String url, String filesize, String savePath, String time) {
 		this.url = url;
 		this.filesize = filesize;
 		this.savePath = savePath;
@@ -24,43 +26,52 @@ public class objWaiting {
 		try {
 			String fileName = (checkTypeFile) ? FileHandle.getFileNameTorrent(url, savePath)
 					: FileHandle.getFileNameFromConnectHttp(url);
-			if (!checkTypeFile) fileName = FileHandle.ensureUniqueFileName(this.savePath, fileName);
+			if (!checkTypeFile)
+				fileName = FileHandle.ensureUniqueFileName(this.savePath, fileName);
 			this.filename = fileName;
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
-	public static List<objWaiting> getListWaiting() {
+	public static List<DownloadWaiting> getListWaiting() {
 		if (!firstcall)
 			return waitings;
 		firstcall = false;
 		List<String> list = FileHandle.readFileFromTxt("WaitingFileTracking.txt");
 		for (String i : list) {
 			String[] parts = i.split(",");
-			waitings.add(new objWaiting(parts[0], parts[1], parts[2], parts[3]));
+			waitings.add(new DownloadWaiting(parts[0], parts[1], parts[2], parts[3]));
 		}
 		return waitings;
 	}
 
 	public static void addObjWaitingToList(String url, String filesize, String savePath, String time) {
-		waitings.add(new objWaiting(url, filesize, savePath, time));
+		waitings.add(new DownloadWaiting(url, filesize, savePath, time));
 	}
 
 	public void updateTime(String time) {
 		FileHandle.deleteLineFromTxtFile("WaitingFileTracking.txt", convertToStringTxt(this));
 		this.time = time;
 		FileHandle.saveFileWaitingToTxt(this.url, this.filesize, this.savePath, this.time);
-		for (objWaiting objWaiting : waitings) {
-			if (objWaiting.url.equals(this.url)) {
-				objWaiting.setTime(time);
+		for (DownloadWaiting DownloadWaiting : waitings) {
+			if (DownloadWaiting.url.equals(this.url)) {
+				DownloadWaiting.setTime(time);
 			}
 		}
 	}
 
 	public static void addWaiting(String url, String sizefile, String path) {
 		FileHandle.saveFileWaitingToTxt(url, sizefile, path, "N/A");
-		waitings.add(new objWaiting(url, sizefile, path, "N/A"));
+		waitings.add(new DownloadWaiting(url, sizefile, path, "N/A"));
+	}
+
+	public static void addWaitingWithDateCurrent(String url, String sizefile, String path) {
+		LocalDateTime now = LocalDateTime.now();
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+		String formattedTime = now.format(formatter);
+		FileHandle.saveFileWaitingToTxt(url, sizefile, path, formattedTime);
+		waitings.add(new DownloadWaiting(url, sizefile, path, formattedTime));
 	}
 
 	public static void deleteWaiting(String filename) {
@@ -75,29 +86,33 @@ public class objWaiting {
 	}
 
 	public static void handelWaiting(MainUI mainUI) {
-		List<UIObjectGeneral> downloadFiles = new ArrayList<UIObjectGeneral>();
+		if (Downloading.getCountDownloading()>=Downloading.getMaxDownloading()) return;
+		List<Downloading> downloadFiles = new ArrayList<Downloading>();
 		waitings.removeIf(objWaiting -> {
 			long waitingTimeMillis = TimeHandle.stringToTimeMillis(objWaiting.getTime());
 			long currentTimeMillis = (long) TimeHandle.getCurrentTime();
 			if (waitingTimeMillis != 0 && waitingTimeMillis <= currentTimeMillis) {
-				downloadFiles.add(new UIObjectGeneral(objWaiting));
+				downloadFiles.add(new Downloading(objWaiting));
 				FileHandle.deleteLineFromTxtFile("WaitingFileTracking.txt", convertToStringTxt(objWaiting));
 				return true;
 			}
 			return false;
 		});
 		if (!downloadFiles.isEmpty()) {
-			for (UIObjectGeneral uiObjectGeneral : downloadFiles) {
+			for (Downloading uiObjectGeneral : downloadFiles) {
+				if (Downloading.getCountDownloading()>=Downloading.getMaxDownloading()) break;
 				new Thread(() -> {
+					Downloading.incrementCountDownloading();
 					MainUI.listFileDownloadingGlobal.add(uiObjectGeneral);
 					mainUI.addDataToMainTable();
 					uiObjectGeneral.start();
+					Downloading.decrementCountDownloading();
 				}).start();
 			}
 		}
 	}
 
-	private static String convertToStringTxt(objWaiting waiting) {
+	private static String convertToStringTxt(DownloadWaiting waiting) {
 		return String.format("%s,%s,%s,%s", waiting.getUrl(), waiting.getFilesize(), waiting.getSavePath(),
 				waiting.getTime());
 	}

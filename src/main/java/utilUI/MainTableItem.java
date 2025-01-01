@@ -1,4 +1,4 @@
-package view;
+package utilUI;
 
 import javafx.beans.property.SimpleStringProperty;
 

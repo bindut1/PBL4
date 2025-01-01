@@ -1,7 +1,5 @@
 package download;
 
-import view.ProgressUI;
-
 public class DownloadObject {
 	public AbstractDownloadObject downloader;
 		

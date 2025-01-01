@@ -1,6 +1,11 @@
 package view;
 
+import util.FileHandle;
+import util.TimeHandle;
 import utilUI.*;
+import downloadUI.*;
+
+import java.lang.Thread;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
@@ -8,10 +13,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.jfoenix.controls.*;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
+
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
@@ -26,12 +33,7 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Duration;
-import util.FileHandle;
-import util.TimeHandle;
 import javafx.application.Platform;
-import java.lang.Thread;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 
 public class MainUI extends Application {
 	private double xOffset = 0;
@@ -39,7 +41,7 @@ public class MainUI extends Application {
 	private BorderPane root;
 	private Stage primaryStage;
 
-	public static List<UIObjectGeneral> listFileDownloadingGlobal = new ArrayList<>();
+	public static List<Downloading> listFileDownloadingGlobal = new ArrayList<>();
 	public List<String> listFileCompleted = FileHandle.readFileFromTxt("CompletedFileTracking.txt");
 
 	public DownloadUI objDownLoadUI;
@@ -47,11 +49,11 @@ public class MainUI extends Application {
 	private TreeView<String> treeView;
 	private JFXButton btnPause;
 	private JFXButton btnResume;
-	public Map<UIObjectGeneral, ProgressUI> progressUIMap = new HashMap<>();
+	public Map<Downloading, ProgressUI> progressUIMap = new HashMap<>();
 
 	@Override
 	public void start(Stage primaryStage) {
-		objWaiting.getListWaiting();
+		DownloadWaiting.getListWaiting();
 		this.primaryStage = primaryStage;
 		this.treeView = new TreeView<>();
 		root = new BorderPane();
@@ -195,7 +197,7 @@ public class MainUI extends Application {
 		Thread handelWaiting = new Thread(() -> {
 			while (true) {
 				try {
-					objWaiting.handelWaiting(this);
+					DownloadWaiting.handelWaiting(this);
 					Thread.sleep(1500);
 				} catch (InterruptedException e) {
 					Thread.currentThread().interrupt();
@@ -260,8 +262,8 @@ public class MainUI extends Application {
 	}
 
 	private void loadTableDownloading() {
-		List<UIObjectGeneral> safeList = new ArrayList<>(listFileDownloadingGlobal);
-		for (UIObjectGeneral i : safeList) {
+		List<Downloading> safeList = new ArrayList<>(listFileDownloadingGlobal);
+		for (Downloading i : safeList) {
 			if (i != null && i.downloader != null && !i.downloader.getCompletedFlag()) {
 				table.getItems()
 						.add(new MainTableItem(i.getFileName(), i.getFileSize(), i.getStatus(), i.getDate(), "N/A"));
@@ -270,10 +272,10 @@ public class MainUI extends Application {
 	}
 
 	private void loadTableWaiting() {
-		List<objWaiting> waitings = objWaiting.getListWaiting();
-		for (objWaiting objWaiting : waitings) {
-			table.getItems().add(new MainTableItem(objWaiting.getFileName(), objWaiting.getFilesize(), "Chờ tải",
-					objWaiting.getTime(), "N/A"));
+		List<DownloadWaiting> waitings = DownloadWaiting.getListWaiting();
+		for (DownloadWaiting DownloadWaiting : waitings) {
+			table.getItems().add(new MainTableItem(DownloadWaiting.getFileName(), DownloadWaiting.getFilesize(), "Chờ tải",
+					DownloadWaiting.getTime(), "N/A"));
 		}
 	}
 
@@ -355,8 +357,8 @@ public class MainUI extends Application {
 					String selectedFileSize = String.valueOf(selectedItem.sizeProperty().getValue());
 					String selectedStatus = String.valueOf(selectedItem.statusProperty().getValue());
 
-					UIObjectGeneral fileSelected = null;
-					for (UIObjectGeneral info : listFileDownloadingGlobal) {
+					Downloading fileSelected = null;
+					for (Downloading info : listFileDownloadingGlobal) {
 						if (info.getFileName().equals(selectedFileName)
 								&& info.getFileSize().equals(selectedFileSize)) {
 							fileSelected = info;
@@ -365,7 +367,7 @@ public class MainUI extends Application {
 					}
 
 					if (fileSelected != null) {
-						final UIObjectGeneral finalFileSelected = fileSelected;
+						final Downloading finalFileSelected = fileSelected;
 						ProgressUI objProgressUI = progressUIMap.computeIfAbsent(finalFileSelected, k -> {
 							return new ProgressUI(primaryStage);
 						});
@@ -383,8 +385,8 @@ public class MainUI extends Application {
 								}
 							}
 						} else if (selectedStatus.trim().equals("Chờ tải")) {
-							List<objWaiting> waitings = objWaiting.getListWaiting();
-							for (objWaiting waiting : waitings) {
+							List<DownloadWaiting> waitings = DownloadWaiting.getListWaiting();
+							for (DownloadWaiting waiting : waitings) {
 								if (waiting.getFileName().equals(selectedFileName)) {
 									filePath = waiting.getSavePath();
 									break;
@@ -436,7 +438,7 @@ public class MainUI extends Application {
 		// Kiểm tra nếu có file torrent trong danh sách
 		for (MainTableItem item : selectedItems) {
 			String fileName = item.urlProperty().getValue();
-			for (UIObjectGeneral info : listFileDownloadingGlobal) {
+			for (Downloading info : listFileDownloadingGlobal) {
 				if (info.getFileName().equals(fileName) && info.getUrl().endsWith(".torrent")) {
 					AlertUI alertUI = new AlertUI(primaryStage, "Thông báo",
 							"Trong các file bạn đã chọn có tồn tại file torrent, không hỗ trợ " + txt
@@ -470,7 +472,7 @@ public class MainUI extends Application {
 		checkFileSelected(selectedItems, "Tạm dừng", true);
 		for (MainTableItem item : selectedItems) {
 			String fileName = item.urlProperty().getValue();
-			for (UIObjectGeneral info : listFileDownloadingGlobal) {
+			for (Downloading info : listFileDownloadingGlobal) {
 				if (info.getFileName().equals(fileName) && info.downloaderNotNull() && info.downloader.getRunningFlag()
 						&& !info.getUrl().endsWith(".torrent")) {
 					info.downloader.pause();
@@ -483,7 +485,7 @@ public class MainUI extends Application {
 		checkFileSelected(selectedItems, "Tiếp tục", false);
 		for (MainTableItem item : selectedItems) {
 			String fileName = item.urlProperty().getValue();
-			for (UIObjectGeneral info : listFileDownloadingGlobal) {
+			for (Downloading info : listFileDownloadingGlobal) {
 				if (info.getFileName().equals(fileName) && !info.getUrl().endsWith(".torrent")
 						&& info.downloaderNotNull() && !info.downloader.getRunningFlag()) {
 					info.downloader.resume();
@@ -506,7 +508,7 @@ public class MainUI extends Application {
 				String status = item.statusProperty().getValue();
 
 				if (status.contains("Đang tải")) {
-					List<UIObjectGeneral> downloadInfoToCancel = listFileDownloadingGlobal.stream()
+					List<Downloading> downloadInfoToCancel = listFileDownloadingGlobal.stream()
 							.filter(info -> info.getFileName().equals(fileName) && info.downloaderNotNull()
 									&& info.downloader.getRunningFlag())
 							.collect(Collectors.toList());
@@ -519,7 +521,7 @@ public class MainUI extends Application {
 						});
 					}
 				} else {
-					objWaiting.deleteWaiting(fileName);
+					DownloadWaiting.deleteWaiting(fileName);
 				}
 				table.getItems().remove(item);
 			}
@@ -539,10 +541,10 @@ public class MainUI extends Application {
 			ScheduleUI objScheduleUI = new ScheduleUI(primaryStage);
 			objScheduleUI.showAndWait();
 			String timeString = objScheduleUI.getTime();
-			List<objWaiting> objWaitings = objWaiting.getListWaiting();
+			List<DownloadWaiting> DownloadWaitings = DownloadWaiting.getListWaiting();
 			if (!timeString.equals("")) {
 				for (MainTableItem item : selectedItems) {
-					for (objWaiting waiting : objWaitings) {
+					for (DownloadWaiting waiting : DownloadWaitings) {
 						String selectedFileName = String.valueOf(item.urlProperty().getValue());
 						if (selectedFileName.equals(waiting.getFileName())) {
 							waiting.updateTime(timeString);

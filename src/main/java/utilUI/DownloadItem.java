@@ -1,4 +1,4 @@
-package view;
+package utilUI;
 
 import com.jfoenix.controls.datamodels.treetable.RecursiveTreeObject;
 

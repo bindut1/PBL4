@@ -2,7 +2,6 @@ package util;
 
 import java.io.BufferedReader;
 
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
@@ -12,6 +11,8 @@ import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,14 +20,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.tika.Tika;
-
-import com.google.common.io.Files;
 import com.turn.ttorrent.client.Client;
 import com.turn.ttorrent.client.SharedTorrent;
 
 import view.MainUI;
-import view.UIObjectGeneral;
-import view.objWaiting;
+import downloadUI.*;
 
 public class FileHandle {
 	private static final DecimalFormat df = new DecimalFormat("#.##");
@@ -80,42 +78,45 @@ public class FileHandle {
 		return sanitizeFileName(fileName);
 	}
 
-	private static String sanitizeFileName(String fileName) {
-		// Thay thế chuỗi gạch dưới liên tiếp thành một gạch dưới duy nhất
-		fileName = fileName.replaceAll("_+", "_");
+	public static String sanitizeFileName(String fileName) {
+		try {
+			fileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8.name());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		fileName = fileName.replaceAll("\\+", "");
 		fileName = fileName.replaceAll("[\\\\/:*?\"<>|]", "_");
-		return fileName.replace("%20", " ");
+		return fileName;
 	}
-	
-	public static String ensureUniqueFileName(String folderPath, String fileName) {
-        File folder = new File(folderPath);
-        int dotIndex = fileName.lastIndexOf(".");
-        String name = (dotIndex > 0) ? fileName.substring(0, dotIndex) : fileName;
-        String extension = (dotIndex > 0) ? fileName.substring(dotIndex) : "";
-        
-        String newFileName = fileName;
-        int counter = 1;
-        while (new File(folder, newFileName).exists()||isFileNameInList(newFileName)) {
-            newFileName = name + " (" + counter + ")" + extension;
-            counter++;
-        }
-        return newFileName;
-    }
-	
-	private static boolean isFileNameInList(String fileName) {
-        for (objWaiting waiting : objWaiting.getListWaiting()) {
-            if (waiting.getFileName().equals(fileName)) {
-                return true;
-            }
-        }
-        for (UIObjectGeneral obj : MainUI.listFileDownloadingGlobal) {
-            if (obj.getFileName().equals(fileName)) {
-                return true;
-            }
-        }
-        return false;
-    }
 
+	public static String ensureUniqueFileName(String folderPath, String fileName) {
+		File folder = new File(folderPath);
+		int dotIndex = fileName.lastIndexOf(".");
+		String name = (dotIndex > 0) ? fileName.substring(0, dotIndex) : fileName;
+		String extension = (dotIndex > 0) ? fileName.substring(dotIndex) : "";
+
+		String newFileName = fileName;
+		int counter = 1;
+		while (new File(folder, newFileName).exists() || isFileNameInList(newFileName)) {
+			newFileName = name + " (" + counter + ")" + extension;
+			counter++;
+		}
+		return newFileName;
+	}
+
+	private static boolean isFileNameInList(String fileName) {
+		for (DownloadWaiting waiting : DownloadWaiting.getListWaiting()) {
+			if (waiting.getFileName().equals(fileName)) {
+				return true;
+			}
+		}
+		for (Downloading obj : MainUI.listFileDownloadingGlobal) {
+			if (obj.getFileName().equals(fileName)) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	public static String getFileNameTorrent(String url, String path) throws Exception {
 		File torrentFile = new File(url);
@@ -183,40 +184,40 @@ public class FileHandle {
 	}
 
 	public static boolean deleteLineFromTxtFile(String fileName, String lineToDelete) {
-        File inputFile = new File(fileName);
-        File tempFile = new File("temp.txt");
-        boolean found = false;
+		File inputFile = new File(fileName);
+		File tempFile = new File("temp.txt");
+		boolean found = false;
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
-             BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
-            String currentLine;
-            while ((currentLine = reader.readLine()) != null) {
-                if (currentLine.trim().equals(lineToDelete.trim())) {
-                    found = true;
-                    continue; 
-                }
-                writer.write(currentLine);
-                writer.newLine();
-            }
+		try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+				BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+			String currentLine;
+			while ((currentLine = reader.readLine()) != null) {
+				if (currentLine.trim().equals(lineToDelete.trim())) {
+					found = true;
+					continue;
+				}
+				writer.write(currentLine);
+				writer.newLine();
+			}
 
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
 
-        if (!found) {
-            tempFile.delete();
-            return false;
-        }
+		if (!found) {
+			tempFile.delete();
+			return false;
+		}
 
-        if (!inputFile.delete()) {
-            tempFile.delete();
-            return false;
-        }
-        if (!tempFile.renameTo(inputFile)) {
-            return false;
-        }
-        return true;
-    }
-	
+		if (!inputFile.delete()) {
+			tempFile.delete();
+			return false;
+		}
+		if (!tempFile.renameTo(inputFile)) {
+			return false;
+		}
+		return true;
+	}
+
 }

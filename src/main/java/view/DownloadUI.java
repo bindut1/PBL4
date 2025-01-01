@@ -1,39 +1,24 @@
 package view;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.text.SimpleDateFormat;
+import utilUI.*;
+import downloadUI.*;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import javax.swing.SwingUtilities;
-
 import com.jfoenix.controls.*;
 import com.jfoenix.controls.cells.editors.base.JFXTreeTableCell;
 import com.jfoenix.controls.datamodels.treetable.RecursiveTreeObject;
 
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIcon;
 import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
-import download.DownloadObject;
-import javafx.animation.KeyFrame;
+
 import javafx.animation.Timeline;
 import javafx.application.Platform;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import javafx.scene.control.ProgressBar;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.TreeItem;
 import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
@@ -41,16 +26,11 @@ import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.util.Duration;
-import util.FileHandle;
-import util.HttpConnection;
 
 public class DownloadUI extends Stage {
 
 	private double xOffset = 0;
 	private double yOffset = 0;
-
-	private List<UIObjectGeneral> downloads;
 	private final ObservableList<DownloadItem> downloadItems = FXCollections.observableArrayList();
 	JFXTreeTableView<DownloadItem> downloadTable;
 
@@ -63,7 +43,6 @@ public class DownloadUI extends Stage {
 	public DownloadUI(Stage owner, MainUI mainUI) {
 		this.mainUI = mainUI;
 		this.objProgressUI = new ProgressUI(owner);
-		downloads = new ArrayList<>();
 
 		initOwner(owner);
 		initModality(Modality.APPLICATION_MODAL);
@@ -280,29 +259,12 @@ public class DownloadUI extends Stage {
 	public void handleDownload(Stage owner) {
 		new Thread(() -> {
 			try {
-				List<UIObjectGeneral> downloadFiles = UIObjectGeneral.convertDownloadItemToUIObjectGeneral(downloadItems);
-				if (!downloadFiles.isEmpty()) {
-					for (UIObjectGeneral i : downloadFiles) {
-						if (!i.isSelected()) {
-							objWaiting.addWaiting(i.getUrl(), i.getFileSize(), i.getPath());
-							mainUI.addDataToMainTable();
-						} else {
-							i.setStatus("Đang tải");
-							new Thread(() -> {
-								String tempName = FileHandle.ensureUniqueFileName(i.getPath(), i.getFileName());
-								i.setFileName(tempName);
-								i.downloader.setFileName(tempName);
-								mainUI.listFileDownloadingGlobal.add(i);
-								mainUI.addDataToMainTable();
-								i.start();
-							}).start();
-						}
-					}
-				}
+				List<Downloading> downloadFiles = Downloading.convertDownloadItemToUIObjectGeneral(downloadItems);
+				Downloading.handleListDownload(mainUI, downloadFiles);
 				Platform.runLater(() -> {
-	                downloadItems.clear();
-	                downloadTable.refresh(); 
-	            });
+					downloadItems.clear();
+					downloadTable.refresh();
+				});
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

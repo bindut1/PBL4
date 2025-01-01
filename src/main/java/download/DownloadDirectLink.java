@@ -2,12 +2,13 @@ package download;
 
 import java.io.*;
 import java.net.*;
-
+import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
+import java.nio.file.Path;
 import util.FileHandle;
 import util.HttpConnection;
 import util.TimeHandle;
@@ -134,11 +135,12 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 
 	private void downloadSegment(String fileUrl, long startByte, long endByte, File outputFile, int segmentNumber,
 			AtomicLong totalBytesDownloaded) throws IOException {
-		HttpURLConnection connection = null;
+		Object connectionOrFile = null;
 		RandomAccessFile raf = null;
 		InputStream in = null;
+		Path tempFile = Files.createTempFile(outputFile.getName() + "segment", ".tmp");
+
 		try {
-			URL url = new URL(fileUrl);
 			long currentPosition = startByte;
 			raf = new RandomAccessFile(outputFile, "rw");
 			byte[] buffer = new byte[25600];
@@ -155,9 +157,9 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 				try {
 					while (!this.runningFlag) {
 						try {
-							if (connection != null) {
-								connection.disconnect();
-								connection = null;
+							if (connectionOrFile instanceof HttpURLConnection) {
+								((HttpURLConnection) connectionOrFile).disconnect();
+								connectionOrFile = null;
 								if (in != null) {
 									in.close();
 									in = null;
@@ -172,27 +174,79 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 					lock.unlock();
 				}
 
-				if (connection == null) {
-					connection = HttpConnection.createSegmentConnection(url, currentPosition, endByte);
-					in = connection.getInputStream();
-					raf.seek(currentPosition);
+				if (connectionOrFile == null) {
+					try {
+						connectionOrFile = HttpConnection.createSegmentConnection(fileUrl, currentPosition, endByte);
+					} catch (Exception e) {
+						e.printStackTrace();
+						return;
+					}
 				}
 
-				bytesRead = in.read(buffer);
-				if (bytesRead == -1)
+				// http1
+				if (connectionOrFile instanceof HttpURLConnection) {
+					//System.out.println("Xử lý HTTP/1.1...");
+					if (in == null) {
+						in = ((HttpURLConnection) connectionOrFile).getInputStream();
+					}
+					bytesRead = in.read(buffer);
+					if (bytesRead == -1)
+						break;
+					try (RandomAccessFile tempRaf = new RandomAccessFile(tempFile.toFile(), "rw")) {
+						tempRaf.seek(currentPosition - startByte);
+						tempRaf.write(buffer, 0, bytesRead);
+					}
+					bytesDownloaded += bytesRead;
+					currentPosition += bytesRead;
+					totalBytesDownloaded.addAndGet(bytesRead);
+
+					currentTime = TimeHandle.getCurrentTime();
+					if (currentTime - lastUpdateTime >= 1500) {
+						updateSegmentProgress(segmentNumber, bytesDownloaded, startByte, endByte);
+						lastUpdateTime = currentTime;
+					}
+				}
+
+				// http2
+				else if (connectionOrFile instanceof byte[]) {
+					System.out.println("Xử lý HTTP/2 (mảng byte)...");
+					byte[] http2Data = (byte[]) connectionOrFile;
+
+					try (RandomAccessFile tempRaf = new RandomAccessFile(tempFile.toFile(), "rw")) {
+						int offset = 0; // Điểm bắt đầu đọc dữ liệu từ mảng byte
+						int length = http2Data.length; // Tổng độ dài của dữ liệu
+						int bytesToWrite; // Số byte sẽ được ghi trong mỗi vòng lặp
+
+						while (offset < length) {
+							bytesToWrite = Math.min(buffer.length, length - offset); // Số byte còn lại hoặc kích thước
+																						// buffer
+							tempRaf.seek(currentPosition - startByte); // Vị trí ghi trong file tạm
+							tempRaf.write(http2Data, offset, bytesToWrite); // Ghi dữ liệu vào file tạm
+							offset += bytesToWrite;
+							currentPosition += bytesToWrite;
+							bytesDownloaded += bytesToWrite;
+							totalBytesDownloaded.addAndGet(bytesToWrite);
+
+							// Cập nhật tiến trình
+							currentTime = TimeHandle.getCurrentTime();
+							if (currentTime - lastUpdateTime >= 1500) {
+								updateSegmentProgress(segmentNumber, bytesDownloaded, startByte, endByte);
+								lastUpdateTime = currentTime;
+							}
+						}
+					}
 					break;
-
-				raf.write(buffer, 0, bytesRead);
-				bytesDownloaded += bytesRead;
-				currentPosition += bytesRead;
-				totalBytesDownloaded.addAndGet(bytesRead);
-
-				currentTime = TimeHandle.getCurrentTime();
-				if (currentTime - lastUpdateTime >= 1500) {
-					updateSegmentProgress(segmentNumber, bytesDownloaded, startByte, endByte);
-					lastUpdateTime = currentTime;
 				}
 			}
+
+			try (RandomAccessFile tempRaf = new RandomAccessFile(tempFile.toFile(), "r")) {
+				tempRaf.seek(0);
+				raf.seek(startByte);
+				while ((bytesRead = tempRaf.read(buffer)) != -1) {
+					raf.write(buffer, 0, bytesRead);
+				}
+			}
+
 			updateSegmentProgress(segmentNumber, bytesDownloaded, startByte, endByte);
 		} finally {
 			if (in != null)
@@ -205,8 +259,10 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 					raf.close();
 				} catch (IOException e) {
 				}
-			if (connection != null)
-				connection.disconnect();
+			if (connectionOrFile instanceof HttpURLConnection) {
+				((HttpURLConnection) connectionOrFile).disconnect();
+			}
+			Files.deleteIfExists(tempFile);
 		}
 	}
 
