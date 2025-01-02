@@ -84,13 +84,16 @@ public class Downloading extends DownloadObject {
 		if (!downloadFiles.isEmpty()) {
 			for (Downloading i : downloadFiles) {
 				if (!i.isSelected()) {
-					i.updateInfor();
-					DownloadWaiting.addWaiting(i.getUrl(), i.getFileSize(), i.getPath());
-					mainUI.addDataToMainTable();
+					new Thread(() -> {
+						i.updateInfor();
+						DownloadWaiting downloadWaiting = new DownloadWaiting(i.getUrl(), i.getFileSize(), i.getPath(),
+								"N/A", i.getFileName());
+						DownloadWaiting.addWaiting(downloadWaiting);
+						mainUI.addDataToMainTable();
+					}).start();
 				} else if (Downloading.getCountDownloading() < Downloading.getMaxDownloading()) {
 					i.setStatus("Đang tải");
 					Downloading.incrementCountDownloading();
-					System.out.println("direct " + Downloading.getCountDownloading());
 					new Thread(() -> {
 						i.updateInfor();
 						mainUI.listFileDownloadingGlobal.add(i);
@@ -99,9 +102,15 @@ public class Downloading extends DownloadObject {
 						Downloading.decrementCountDownloading();
 					}).start();
 				} else {
-					System.out.println(131313);
-					DownloadWaiting.addWaitingWithDateCurrent(i.getUrl(), i.getFileSize(), i.getPath());
-					mainUI.addDataToMainTable();
+					new Thread(() -> {
+						System.out.println("after");
+						i.updateInfor();
+						DownloadWaiting downloadWaiting = new DownloadWaiting(i.getUrl(), i.getFileSize(), i.getPath(),
+								"N/A", i.getFileName());
+						DownloadWaiting.addWaitingWithDateCurrent(downloadWaiting);
+						mainUI.addDataToMainTable();
+					}).start();
+					
 				}
 			}
 		}
@@ -111,7 +120,7 @@ public class Downloading extends DownloadObject {
 		synchronized (Downloading.class) {
 			return Downloading.maxDownloading;
 		}
-		
+
 	}
 
 	public static synchronized void setMaxDownloading(int max) {

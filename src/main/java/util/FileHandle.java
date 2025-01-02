@@ -94,7 +94,7 @@ public class FileHandle {
 		int dotIndex = fileName.lastIndexOf(".");
 		String name = (dotIndex > 0) ? fileName.substring(0, dotIndex) : fileName;
 		String extension = (dotIndex > 0) ? fileName.substring(dotIndex) : "";
-
+		//name = name.replaceAll("\\s*\\(\\d+\\)$", "");
 		String newFileName = fileName;
 		int counter = 1;
 		while (new File(folder, newFileName).exists() || isFileNameInList(newFileName)) {
@@ -172,8 +172,8 @@ public class FileHandle {
 		}
 	}
 
-	public static void saveFileWaitingToTxt(String url, String fileSize, String path, String time) {
-		String logEntry = String.format("%s,%s,%s,%s", url, fileSize, path, time);
+	public static void saveFileWaitingToTxt(DownloadWaiting downloadWaiting) {
+		String logEntry = DownloadWaiting.convertToStringTxt(downloadWaiting);
 		try (FileWriter fw = new FileWriter("WaitingFileTracking.txt", true);
 				BufferedWriter bw = new BufferedWriter(fw);
 				PrintWriter out = new PrintWriter(bw)) {

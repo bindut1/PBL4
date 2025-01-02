@@ -25,6 +25,9 @@ public class SettingUI extends Stage {
     private static int maxFiles = 5;    // Số file tải tối đa mặc định
     private static int maxThreads = 5; // Số luồng tải mặc định
     private static int trunkSize = 1024; // Dung lượng mỗi trunk mặc định (KB)
+    private static int originalMaxFiles = maxFiles;
+    private static int originalMaxThreads = maxThreads;
+    private static int originalTrunkSize = trunkSize;
 
     public SettingUI(Stage owner) {
         initOwner(owner);
@@ -82,6 +85,9 @@ public class SettingUI extends Stage {
         JFXButton saveButton = new JFXButton("Lưu");
         saveButton.getStyleClass().add("save-button");
         saveButton.setOnAction(e -> {
+        	originalMaxFiles = maxFiles;
+        	originalMaxThreads = maxThreads;
+        	originalTrunkSize = trunkSize;
         	Downloading.setMaxDownloading(maxFiles);
         	DownloadDirectLink.SetBUFFER(trunkSize);
         	DownloadDirectLink.SetNUM_SEGMENTS(maxThreads);
@@ -90,7 +96,12 @@ public class SettingUI extends Stage {
 
         JFXButton cancelButton = new JFXButton("Hủy");
         cancelButton.getStyleClass().add("cancel-button");
-        cancelButton.setOnAction(e -> close());
+        cancelButton.setOnAction(e -> {
+            maxFiles = originalMaxFiles;
+            maxThreads = originalMaxThreads;
+            trunkSize = originalTrunkSize;
+            close();
+        });
 
         buttonBox.getChildren().addAll(cancelButton, saveButton);
 
