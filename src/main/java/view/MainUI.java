@@ -163,34 +163,42 @@ public class MainUI extends Application {
 			}
 		});
 		// Xu ly cap nhat tien do lien tuc
-		Timeline progressUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(1.0), event -> {
-			Platform.runLater(() -> {
-				listFileDownloadingGlobal.forEach(info -> {
-					ProgressUI objProgressUI = progressUIMap.computeIfAbsent(info, k -> new ProgressUI(primaryStage));
-					info.updateProgressUI(objProgressUI);
-					if (!info.downloader.getCompletedFlag()) {
-						String status = "";
-						int progress = (int) (info.downloader.getProgress() * 100);
-						if (info.downloader.getRunningFlag())
-							status = "Đang tải (" + progress + "%)";
-						else
-							status = "Tạm dừng (" + progress + "%)";
-						updateTableRow(info.getFileName(), info.getFileSize(), status);
-					} else {
-						if (!info.isSaveToTxt()) {
-							String time = String.valueOf(TimeHandle
-									.formatTime((System.currentTimeMillis() - info.downloader.getStartTime())));
-							info.setStatus("Đã tải");
-							FileHandle.saveFileCompletedToTxt(info.getFileName(), info.getFileSize(), info.getStatus(),
-									info.getDate(), time, info.getPath());
-							info.setSaveToTxt(true);
-							updateTableRow(info.getFileName(), info.getFileSize(), "Đã tải");
-							addDataToMainTable();
-						}
-					}
-				});
-			});
-		}));
+				Timeline progressUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(1.0), event -> {
+				    Platform.runLater(() -> {
+				        // Danh sách tạm để lưu các tệp đã hoàn tất tải
+				        List<Downloading> completedFiles = new ArrayList<>();
+
+				        listFileDownloadingGlobal.forEach(info -> {
+				            ProgressUI objProgressUI = progressUIMap.computeIfAbsent(info, k -> new ProgressUI(primaryStage));
+				            info.updateProgressUI(objProgressUI);
+
+				            if (!info.downloader.getCompletedFlag()) {
+				                String status = "";
+				                int progress = (int) (info.downloader.getProgress() * 100);
+				                if (info.downloader.getRunningFlag())
+				                    status = "Đang tải (" + progress + "%)";
+				                else
+				                    status = "Tạm dừng (" + progress + "%)";
+				                updateTableRow(info.getFileName(), info.getFileSize(), status);
+				            } else {
+				                if (!info.isSaveToTxt()) {
+				                    String time = String.valueOf(TimeHandle.formatTime(
+				                            (System.currentTimeMillis() - info.downloader.getStartTime())));
+				                    info.setStatus("Đã tải");
+				                    FileHandle.saveFileCompletedToTxt(info.getFileName(), info.getFileSize(), info.getStatus(),
+				                            info.getDate(), time, info.getPath());
+				                    info.setSaveToTxt(true);
+				                    updateTableRow(info.getFileName(), info.getFileSize(), "Đã tải");
+				                    addDataToMainTable();
+				                }
+				                // Thêm tệp đã hoàn tất vào danh sách tạm
+				                completedFiles.add(info);
+				            }
+				        });
+				        // Xóa các tệp đã hoàn tất khỏi danh sách đang tải
+				        listFileDownloadingGlobal.removeAll(completedFiles);
+				    });
+				}));
 		progressUpdateTimeline.setCycleCount(Timeline.INDEFINITE);
 		progressUpdateTimeline.play();
 		// xử lí waiting
