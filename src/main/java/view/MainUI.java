@@ -163,7 +163,7 @@ public class MainUI extends Application {
 			}
 		});
 		// Xu ly cap nhat tien do lien tuc
-		Timeline progressUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event -> {
+		Timeline progressUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(1.0), event -> {
 			Platform.runLater(() -> {
 				// Danh sách tạm để lưu các tệp đã hoàn tất tải
 				List<Downloading> completedFiles = new ArrayList<>();
@@ -208,9 +208,6 @@ public class MainUI extends Application {
 						}
 					}
 				});
-				for (int i = 0; i < completedFiles.size(); i++) {
-				    Downloading.decrementCountDownloading();
-				}
 
 				// Xóa các tệp đã hoàn tất khỏi danh sách đang tải
 				synchronized (listFileDownloadingGlobal) {
@@ -552,16 +549,13 @@ public class MainUI extends Application {
 						if (info.downloaderNotNull()) {
 							info.downloader.cancel(); // Hủy download
 							info.downloader = null; // Xóa tham chiếu đến downloader
-
 							ProgressUI progressUI = progressUIMap.remove(info);
 							if (progressUI != null) {
 								progressUI = null; // Xóa tham chiếu để GC thu hồi
 							}
 						}
 					});
-					for (int i = 0; i < downloadInfoToCancel.size(); i++) {
-					    Downloading.decrementCountDownloading();
-					}
+
 					listFileDownloadingGlobal.removeAll(downloadInfoToCancel);
 				} else if (status.contains("Tạm dừng")) {
 					List<Downloading> pausedFiles = listFileDownloadingGlobal.stream()
@@ -572,16 +566,13 @@ public class MainUI extends Application {
 						if (info.downloaderNotNull()) {
 							info.downloader.cancel(); // Hủy download
 							info.downloader = null; // Xóa tham chiếu đến downloader
-
 							ProgressUI progressUI = progressUIMap.remove(info);
 							if (progressUI != null) {
 								progressUI = null; // Xóa tham chiếu để GC thu hồi
 							}
 						}
 					});
-					for (int i = 0; i < pausedFiles.size(); i++) {
-					    Downloading.decrementCountDownloading();
-					}
+
 					listFileDownloadingGlobal.removeAll(pausedFiles);
 				} else if (status.contains("Đã tải")) {
 					if (listFileCompleted != null && !listFileCompleted.isEmpty()) {

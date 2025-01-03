@@ -115,8 +115,8 @@ public class DownloadWaiting {
 						Downloading downloading = new Downloading(objWaiting);
 						MainUI.listFileDownloadingGlobal.add(downloading);
 						mainUI.addDataToMainTable();
-						System.out.println(Downloading.getCountDownloading());
-						System.out.println(Downloading.getMaxDownloading());
+						System.out.println("cout"+Downloading.getCountDownloading());
+						System.out.println("max"+Downloading.getMaxDownloading());
 						downloading.start();
 						Downloading.decrementCountDownloading();
 					}).start();
