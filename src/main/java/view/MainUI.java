@@ -171,7 +171,7 @@ public class MainUI extends Application {
 				listFileDownloadingGlobal.forEach(info -> {
 					ProgressUI objProgressUI = progressUIMap.computeIfAbsent(info, k -> new ProgressUI(primaryStage));
 					info.updateProgressUI(objProgressUI);
-					
+
 					if (!info.downloader.getCompletedFlag()) {
 						String status = "";
 						int progress = (int) (info.downloader.getProgress() * 100);
@@ -184,8 +184,8 @@ public class MainUI extends Application {
 						objProgressUI.appendText(info.downloader.getDetailText());
 						objProgressUI.updateProgress(info.downloader.getProgress());
 						if (!info.isSaveToTxt()) {
-							String time = String.valueOf(TimeHandle
-									.formatTime((System.currentTimeMillis() - info.downloader.getStartTime())));
+							String time = String.valueOf(TimeHandle.formatTime((System.currentTimeMillis()
+									- info.downloader.getStartTime() - info.downloader.getTotalPauseTime())));
 							info.setStatus("Đã tải");
 							FileHandle.saveFileCompletedToTxt(info.getFileName(), info.getFileSize(), info.getStatus(),
 									info.getDate(), time, info.getPath());
@@ -197,12 +197,21 @@ public class MainUI extends Application {
 						completedFiles.add(info);
 					}
 				});
-				
+				completedFiles.forEach(info -> {
+					if (info.downloaderNotNull()) {
+						info.downloader.cancel(); // Hủy download
+						info.downloader = null; // Xóa tham chiếu đến downloader
+
+						ProgressUI progressUI = progressUIMap.remove(info);
+						if (progressUI != null) {
+							progressUI = null; // Xóa tham chiếu để GC thu hồi
+						}
+					}
+				});
 				// Xóa các tệp đã hoàn tất khỏi danh sách đang tải
 				synchronized (listFileDownloadingGlobal) {
 					listFileDownloadingGlobal.removeAll(completedFiles);
 				}
-
 			});
 		}));
 		progressUpdateTimeline.setCycleCount(Timeline.INDEFINITE);
@@ -283,6 +292,7 @@ public class MainUI extends Application {
 						.add(new MainTableItem(i.getFileName(), i.getFileSize(), i.getStatus(), i.getDate(), "N/A"));
 			}
 		}
+		safeList = null;
 	}
 
 	private void loadTableWaiting() {
@@ -356,8 +366,11 @@ public class MainUI extends Application {
 		listFileDownloadingGlobal.forEach(info -> {
 			if (info.downloaderNotNull())
 				info.downloader.cancel();
-			System.exit(0);
+			info.downloader = null;
 		});
+		listFileDownloadingGlobal.clear();
+		progressUIMap.clear();
+		System.exit(0);
 	}
 
 	// ham xu ly khi double click
@@ -386,6 +399,9 @@ public class MainUI extends Application {
 							return new ProgressUI(primaryStage);
 						});
 						objProgressUI.showAndWait();
+//						ProgressUI progressUI = new ProgressUI(primaryStage);
+//						progressUI.initModality(Modality.NONE); // Không chặn giao diện chính
+//						progressUI.show(); // Hiển thị
 					} else {
 						String filePath = "";
 						if (selectedStatus.trim().equals("Đã tải")) {
@@ -489,6 +505,7 @@ public class MainUI extends Application {
 			for (Downloading info : listFileDownloadingGlobal) {
 				if (info.getFileName().equals(fileName) && info.downloaderNotNull() && info.downloader.getRunningFlag()
 						&& !info.getUrl().endsWith(".torrent")) {
+					item.setStatus("Tạm dừng");
 					info.downloader.pause();
 				}
 			}
@@ -526,8 +543,37 @@ public class MainUI extends Application {
 							.filter(info -> info.getFileName().equals(fileName) && info.downloaderNotNull()
 									&& info.downloader.getRunningFlag())
 							.collect(Collectors.toList());
-					downloadInfoToCancel.forEach(info -> info.downloader.cancel());
+					downloadInfoToCancel.forEach(info -> {
+						if (info.downloaderNotNull()) {
+							Downloading.decrementCountDownloading();
+							info.downloader.cancel(); // Hủy download
+							info.downloader = null; // Xóa tham chiếu đến downloader
+
+							ProgressUI progressUI = progressUIMap.remove(info);
+							if (progressUI != null) {
+								progressUI = null; // Xóa tham chiếu để GC thu hồi
+							}
+						}
+					});
 					listFileDownloadingGlobal.removeAll(downloadInfoToCancel);
+				} else if (status.contains("Tạm dừng")) {
+					List<Downloading> pausedFiles = listFileDownloadingGlobal.stream()
+							.filter(info -> info.getFileName().equals(fileName) && info.downloaderNotNull()
+									&& !info.downloader.getRunningFlag())
+							.collect(Collectors.toList());
+					pausedFiles.forEach(info -> {
+						if (info.downloaderNotNull()) {
+							Downloading.decrementCountDownloading();
+							info.downloader.cancel(); // Hủy download
+							info.downloader = null; // Xóa tham chiếu đến downloader
+
+							ProgressUI progressUI = progressUIMap.remove(info);
+							if (progressUI != null) {
+								progressUI = null; // Xóa tham chiếu để GC thu hồi
+							}
+						}
+					});
+					listFileDownloadingGlobal.removeAll(pausedFiles);
 				} else if (status.contains("Đã tải")) {
 					if (listFileCompleted != null && !listFileCompleted.isEmpty()) {
 						listFileCompleted.stream().filter(info -> info.split(",")[0].equals(fileName)).forEach(info -> {

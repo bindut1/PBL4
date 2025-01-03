@@ -66,4 +66,8 @@ public abstract class AbstractDownloadObject {
 	public void setFileName(String fileName) {
 		this.fileName = fileName;
 	}
+
+	public double getTotalPauseTime() {
+		return totalPauseTime;
+	}
 }

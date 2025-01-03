@@ -1,6 +1,7 @@
 package util;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
@@ -77,6 +78,46 @@ public class HttpConnection {
 			connection.setDoInput(true);
 			return connection; // Trả về HttpURLConnection
 		}
+	}
+	
+	public static InputStream createSegmentConnection1(String fileUrl, long currentPosition, long endByte) throws Exception {
+	    try {
+	        // Sử dụng HttpClient để ưu tiên HTTP/2
+	        HttpClient client = HttpClient.newBuilder()
+	                .version(HttpClient.Version.HTTP_2) // Ưu tiên HTTP/2
+	                .connectTimeout(Duration.ofSeconds(10))
+	                .build();
+
+	        HttpRequest request = HttpRequest.newBuilder()
+	                .uri(new URI(fileUrl))
+	                .header("Range", "bytes=" + currentPosition + "-" + endByte)
+	                .GET()
+	                .build();
+
+	        // Sử dụng InputStream để đọc dữ liệu từ HTTP/2
+	        HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+	        // Kiểm tra mã trạng thái phản hồi
+	        if (response.statusCode() == 206 || response.statusCode() == 200) {
+	            System.out.println("HTTP/2 được sử dụng. Trả về InputStream.");
+	            return response.body(); // Trả về InputStream
+	        } else {
+	            throw new IOException("HTTP/2 không trả về phản hồi hợp lệ.");
+	        }
+	    } catch (Exception e) {
+	        // Fallback sang HTTP/1.1 nếu HTTP/2 không thành công
+	        System.out.println("Fallback sang HTTP/1.1: " + e.getMessage());
+	        URL url = new URL(fileUrl);
+	        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+	        connection.setRequestMethod("GET");
+	        connection.setRequestProperty("Range", "bytes=" + currentPosition + "-" + endByte);
+	        connection.setConnectTimeout(10000);
+	        connection.setReadTimeout(15000);
+	        connection.setDoInput(true);
+
+	        // Trả về InputStream từ HTTP/1.1
+	        return connection.getInputStream();
+	    }
 	}
 
 }
