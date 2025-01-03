@@ -208,6 +208,10 @@ public class MainUI extends Application {
 						}
 					}
 				});
+				for (int i = 0; i < completedFiles.size(); i++) {
+				    Downloading.decrementCountDownloading();
+				}
+
 				// Xóa các tệp đã hoàn tất khỏi danh sách đang tải
 				synchronized (listFileDownloadingGlobal) {
 					listFileDownloadingGlobal.removeAll(completedFiles);
@@ -543,9 +547,9 @@ public class MainUI extends Application {
 							.filter(info -> info.getFileName().equals(fileName) && info.downloaderNotNull()
 									&& info.downloader.getRunningFlag())
 							.collect(Collectors.toList());
+					
 					downloadInfoToCancel.forEach(info -> {
 						if (info.downloaderNotNull()) {
-							Downloading.decrementCountDownloading();
 							info.downloader.cancel(); // Hủy download
 							info.downloader = null; // Xóa tham chiếu đến downloader
 
@@ -555,6 +559,9 @@ public class MainUI extends Application {
 							}
 						}
 					});
+					for (int i = 0; i < downloadInfoToCancel.size(); i++) {
+					    Downloading.decrementCountDownloading();
+					}
 					listFileDownloadingGlobal.removeAll(downloadInfoToCancel);
 				} else if (status.contains("Tạm dừng")) {
 					List<Downloading> pausedFiles = listFileDownloadingGlobal.stream()
@@ -563,7 +570,6 @@ public class MainUI extends Application {
 							.collect(Collectors.toList());
 					pausedFiles.forEach(info -> {
 						if (info.downloaderNotNull()) {
-							Downloading.decrementCountDownloading();
 							info.downloader.cancel(); // Hủy download
 							info.downloader = null; // Xóa tham chiếu đến downloader
 
@@ -573,6 +579,9 @@ public class MainUI extends Application {
 							}
 						}
 					});
+					for (int i = 0; i < pausedFiles.size(); i++) {
+					    Downloading.decrementCountDownloading();
+					}
 					listFileDownloadingGlobal.removeAll(pausedFiles);
 				} else if (status.contains("Đã tải")) {
 					if (listFileCompleted != null && !listFileCompleted.isEmpty()) {

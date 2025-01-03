@@ -111,11 +111,12 @@ public class DownloadWaiting {
 				if (Downloading.getCountDownloading() < Downloading.getMaxDownloading()) {
 					FileHandle.deleteLineFromTxtFile("WaitingFileTracking.txt", convertToStringTxt(objWaiting));
 					Downloading.incrementCountDownloading();
-
 					new Thread(() -> {
 						Downloading downloading = new Downloading(objWaiting);
 						MainUI.listFileDownloadingGlobal.add(downloading);
 						mainUI.addDataToMainTable();
+						System.out.println(Downloading.getCountDownloading());
+						System.out.println(Downloading.getMaxDownloading());
 						downloading.start();
 						Downloading.decrementCountDownloading();
 					}).start();
