@@ -4,6 +4,8 @@ import utilUI.*;
 import downloadUI.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
+
 import com.jfoenix.controls.*;
 import com.jfoenix.controls.cells.editors.base.JFXTreeTableCell;
 import com.jfoenix.controls.datamodels.treetable.RecursiveTreeObject;
@@ -14,6 +16,7 @@ import de.jensd.fx.glyphs.materialdesignicons.MaterialDesignIconView;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -92,9 +95,12 @@ public class DownloadUI extends Stage {
 		addUrlButton.setGraphic(addIcon);
 		addUrlButton.setOnAction(e -> {
 			String url = urlInput.getText().trim();
-			if (!url.isEmpty()) {
+			if (!url.isEmpty() && validateInput(url)) {
 				downloadItems.add(new DownloadItem(url, defaultSavePath));
 				urlInput.clear();
+			} else {
+				AlertUI alertUI = new AlertUI(owner, "Thông báo", "Đầu vào không đúng định dạng!");
+				alertUI.showAndWait();
 			}
 		});
 
@@ -222,6 +228,15 @@ public class DownloadUI extends Stage {
 
 		JFXButton downloadButton = new JFXButton("Bắt đầu tải");
 		downloadButton.getStyleClass().add("download-button");
+		
+		downloadButton.setDisable(downloadItems.isEmpty());
+		downloadItems.addListener((ListChangeListener<? super DownloadItem>) change -> {
+		    while (change.next()) {
+		        if (change.wasAdded() || change.wasRemoved()) {
+		            downloadButton.setDisable(downloadItems.isEmpty());
+		        }
+		    }
+		});
 
 		downloadButton.setOnAction(e -> {
 			handleDownload(owner);
@@ -254,6 +269,11 @@ public class DownloadUI extends Stage {
 		button.setGraphic(iconView);
 		button.getStyleClass().add(styleClass);
 		return button;
+	}
+
+	private boolean validateInput(String input) {
+		String urlRegex = "^(http?|https)://[^\\s/$.?#].[^\\s]*$";
+		return Pattern.matches(urlRegex, input);
 	}
 
 	public void handleDownload(Stage owner) {

@@ -163,42 +163,48 @@ public class MainUI extends Application {
 			}
 		});
 		// Xu ly cap nhat tien do lien tuc
-				Timeline progressUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(1.0), event -> {
-				    Platform.runLater(() -> {
-				        // Danh sách tạm để lưu các tệp đã hoàn tất tải
-				        List<Downloading> completedFiles = new ArrayList<>();
+		Timeline progressUpdateTimeline = new Timeline(new KeyFrame(Duration.seconds(0.2), event -> {
+			Platform.runLater(() -> {
+				// Danh sách tạm để lưu các tệp đã hoàn tất tải
+				List<Downloading> completedFiles = new ArrayList<>();
 
-				        listFileDownloadingGlobal.forEach(info -> {
-				            ProgressUI objProgressUI = progressUIMap.computeIfAbsent(info, k -> new ProgressUI(primaryStage));
-				            info.updateProgressUI(objProgressUI);
+				listFileDownloadingGlobal.forEach(info -> {
+					ProgressUI objProgressUI = progressUIMap.computeIfAbsent(info, k -> new ProgressUI(primaryStage));
+					info.updateProgressUI(objProgressUI);
+					
+					if (!info.downloader.getCompletedFlag()) {
+						String status = "";
+						int progress = (int) (info.downloader.getProgress() * 100);
+						if (info.downloader.getRunningFlag())
+							status = "Đang tải (" + progress + "%)";
+						else
+							status = "Tạm dừng (" + progress + "%)";
+						updateTableRow(info.getFileName(), info.getFileSize(), status);
+					} else {
+						objProgressUI.appendText(info.downloader.getDetailText());
+						objProgressUI.updateProgress(info.downloader.getProgress());
+						if (!info.isSaveToTxt()) {
+							String time = String.valueOf(TimeHandle
+									.formatTime((System.currentTimeMillis() - info.downloader.getStartTime())));
+							info.setStatus("Đã tải");
+							FileHandle.saveFileCompletedToTxt(info.getFileName(), info.getFileSize(), info.getStatus(),
+									info.getDate(), time, info.getPath());
+							info.setSaveToTxt(true);
+							updateTableRow(info.getFileName(), info.getFileSize(), "Đã tải");
+							addDataToMainTable();
+						}
+						// Thêm tệp đã hoàn tất vào danh sách tạm
+						completedFiles.add(info);
+					}
+				});
+				
+				// Xóa các tệp đã hoàn tất khỏi danh sách đang tải
+				synchronized (listFileDownloadingGlobal) {
+					listFileDownloadingGlobal.removeAll(completedFiles);
+				}
 
-				            if (!info.downloader.getCompletedFlag()) {
-				                String status = "";
-				                int progress = (int) (info.downloader.getProgress() * 100);
-				                if (info.downloader.getRunningFlag())
-				                    status = "Đang tải (" + progress + "%)";
-				                else
-				                    status = "Tạm dừng (" + progress + "%)";
-				                updateTableRow(info.getFileName(), info.getFileSize(), status);
-				            } else {
-				                if (!info.isSaveToTxt()) {
-				                    String time = String.valueOf(TimeHandle.formatTime(
-				                            (System.currentTimeMillis() - info.downloader.getStartTime())));
-				                    info.setStatus("Đã tải");
-				                    FileHandle.saveFileCompletedToTxt(info.getFileName(), info.getFileSize(), info.getStatus(),
-				                            info.getDate(), time, info.getPath());
-				                    info.setSaveToTxt(true);
-				                    updateTableRow(info.getFileName(), info.getFileSize(), "Đã tải");
-				                    addDataToMainTable();
-				                }
-				                // Thêm tệp đã hoàn tất vào danh sách tạm
-				                completedFiles.add(info);
-				            }
-				        });
-				        // Xóa các tệp đã hoàn tất khỏi danh sách đang tải
-				        listFileDownloadingGlobal.removeAll(completedFiles);
-				    });
-				}));
+			});
+		}));
 		progressUpdateTimeline.setCycleCount(Timeline.INDEFINITE);
 		progressUpdateTimeline.play();
 		// xử lí waiting
@@ -282,8 +288,8 @@ public class MainUI extends Application {
 	private void loadTableWaiting() {
 		List<DownloadWaiting> waitings = DownloadWaiting.getListWaiting();
 		for (DownloadWaiting DownloadWaiting : waitings) {
-			table.getItems().add(new MainTableItem(DownloadWaiting.getFileName(), DownloadWaiting.getFilesize(), "Chờ tải",
-					DownloadWaiting.getTime(), "N/A"));
+			table.getItems().add(new MainTableItem(DownloadWaiting.getFileName(), DownloadWaiting.getFilesize(),
+					"Chờ tải", DownloadWaiting.getTime(), "N/A"));
 		}
 	}
 

@@ -18,6 +18,7 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 	private static int BUFFER = 1024 * 1000;
 	private int num_segment;
 	private int trunkSize;
+
 	public DownloadDirectLink() {
 		synchronized (DownloadDirectLink.class) {
 			this.num_segment = DownloadDirectLink.NUM_SEGMENTS;
@@ -315,21 +316,19 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 	}
 
 	public void updateOverallProgress(long totalBytesDownloaded, long fileSize) {
-		{
-			double progress = (double) totalBytesDownloaded / fileSize * 100;
-			double nowTime = TimeHandle.getCurrentTime();
-			double elapsedTime = nowTime - this.startTime - this.totalPauseTime;
-			double speed = totalBytesDownloaded / elapsedTime; // milisecond
-			double estimatedTimeRemaining = (fileSize - totalBytesDownloaded) / speed;
-			speed *= 1000; // tốc độ trên 1 giây
-			String detailText = String.format(
-					"Overall Progress: %s / %s (%.2f%%) - Speed: %s/s - Elapsed: %s - ETA: %s \n",
-					FileHandle.formatFileSize(totalBytesDownloaded), FileHandle.formatFileSize(fileSize), progress,
-					FileHandle.formatFileSize((long) speed), TimeHandle.formatTime(elapsedTime),
-					TimeHandle.formatTime(estimatedTimeRemaining));
-			this.detailText = detailText;
-			this.progress = progress / 100;
-		}
+		double progress = (double) totalBytesDownloaded / fileSize * 100;
+		double nowTime = TimeHandle.getCurrentTime();
+		double elapsedTime = nowTime - this.startTime - this.totalPauseTime;
+		double speed = totalBytesDownloaded / elapsedTime; // milisecond
+		double estimatedTimeRemaining = (fileSize - totalBytesDownloaded) / speed;
+		speed *= 1000; // tốc độ trên 1 giây
+		String detailText = String.format("Overall Progress: %s / %s (%.2f%%) - Speed: %s/s - Elapsed: %s - ETA: %s \n",
+				FileHandle.formatFileSize(totalBytesDownloaded), FileHandle.formatFileSize(fileSize), progress,
+				FileHandle.formatFileSize((long) speed), TimeHandle.formatTime(elapsedTime),
+				TimeHandle.formatTime(estimatedTimeRemaining));
+		this.detailText = detailText;
+		this.progress = (totalBytesDownloaded < fileSize) ? (progress / 100) : 1.0;
+		System.out.println("Text overrall: " + this.detailText + "\n" + "progress: " + this.progress);
 	}
 
 	public void updateSegmentProgress(int segmentNumber, long bytesDownloaded, long startByte, long endByte) {
@@ -338,13 +337,14 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 			double timeElapsed = currentTime - this.startTime - this.totalPauseTime;
 			long segmentSize = endByte - startByte + 1;
 			double speedInBytesPerSecond = (bytesDownloaded * 1000.0) / timeElapsed;
-			double segmentProgress = (double) (bytesDownloaded * 100.0) / (segmentSize);
+			double segmentProgress = Math.min((double) (bytesDownloaded * 100.0) / (segmentSize), 100.0);
 
 			String detailText = String.format("Segment %d: %s / %s (%.2f%%) - Speed: %s/s - Elapsed: %s\n",
 					segmentNumber + 1, FileHandle.formatFileSize(bytesDownloaded),
 					FileHandle.formatFileSize(segmentSize), segmentProgress,
 					FileHandle.formatFileSize((long) speedInBytesPerSecond), TimeHandle.formatTime(timeElapsed));
 			this.detailText += detailText;
+			System.out.println("Text segment: " + this.detailText);
 		}
 	}
 
@@ -378,7 +378,6 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 		synchronized (DownloadDirectLink.class) {
 			DownloadDirectLink.NUM_SEGMENTS = num;
 		}
-
 	}
 
 	public static void SetBUFFER(int buffer) {

@@ -1,6 +1,7 @@
 package downloadUI;
 
 import download.DownloadObject;
+import javafx.application.Platform;
 import view.ProgressUI;
 import view.MainUI;
 import utilUI.*;
@@ -40,8 +41,10 @@ public class Downloading extends DownloadObject {
 
 	public void updateProgressUI(ProgressUI progressUI) {
 		if (this.downloaderNotNull() && this.downloader.getRunningFlag()) {
-			progressUI.updateProgress(this.downloader.getProgress());
-			progressUI.appendText(this.downloader.getDetailText());
+			Platform.runLater(() -> {
+				progressUI.updateProgress(this.downloader.getProgress());
+				progressUI.appendText(this.downloader.getDetailText());
+			});
 		}
 	}
 
@@ -110,7 +113,7 @@ public class Downloading extends DownloadObject {
 						DownloadWaiting.addWaitingWithDateCurrent(downloadWaiting);
 						mainUI.addDataToMainTable();
 					}).start();
-					
+
 				}
 			}
 		}
