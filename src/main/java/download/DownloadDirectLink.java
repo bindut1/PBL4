@@ -162,7 +162,8 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 					while (!this.runningFlag) {
 						try {
 							pauseCondition.await();
-						} catch (Exception e) {}
+						} catch (Exception e) {
+						}
 					}
 				} finally {
 					lock.unlock();
@@ -176,7 +177,7 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 					}
 				}
 				bytesRead = in.read(buffer);
-				if (bytesRead == -1) 
+				if (bytesRead == -1)
 					break;
 				try (RandomAccessFile tempRaf = new RandomAccessFile(tempFile.toFile(), "rw")) {
 					tempRaf.seek(currentPosition - startByte);
@@ -235,6 +236,8 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 				} finally {
 					lock.unlock();
 				}
+				if (totalBytesDownloaded.get() == fileSize)
+					break;
 				updateOverallProgress(totalBytesDownloaded.get(), fileSize);
 				Thread.sleep(2000);
 			} catch (InterruptedException e) {
@@ -249,8 +252,17 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 			for (Future<?> future : futures) {
 				future.get();
 			}
-			updateOverallProgress(fileSize, fileSize);
-			this.detailText = "Download completed successfully!";
+			double nowTime = TimeHandle.getCurrentTime();
+			double elapsedTime = nowTime - this.startTime - this.totalPauseTime;
+			double speed = fileSize / elapsedTime; // milisecond
+			speed *= 1000; // tốc độ trên 1 giây
+			String detailText = String.format(
+					"Overall Progress: %s / %s (%.2f%%) - Speed: %s/s - Elapsed: %s - ETA: %s \n",
+					FileHandle.formatFileSize(fileSize), FileHandle.formatFileSize(fileSize), 100.0,
+					FileHandle.formatFileSize((long) speed), TimeHandle.formatTime(elapsedTime),
+					TimeHandle.formatTime(0));
+			this.detailText += detailText + "Download completed successfully!";
+			this.progress = 1.0;
 			this.completedFlag = true;
 		} catch (InterruptedException | ExecutionException e) {
 			this.detailText = "Download failed: " + e.getMessage();
