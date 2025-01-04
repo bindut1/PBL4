@@ -183,7 +183,6 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 					tempRaf.seek(currentPosition - startByte);
 					tempRaf.write(buffer, 0, bytesRead);
 				}
-				System.out.println(bytesRead);
 				currentPosition += bytesRead;
 				bytesDownloaded += bytesRead;
 				totalBytesDownloaded.addAndGet(bytesRead);
