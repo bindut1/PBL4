@@ -15,7 +15,7 @@ import util.TimeHandle;
 
 public class DownloadDirectLink extends AbstractDownloadObject {
 	private static int NUM_SEGMENTS = 5;
-	private static int BUFFER = 1024 * 1000;
+	private static int BUFFER = 1024 * 1024;
 	private int num_segment;
 	private int trunkSize;
 
@@ -183,6 +183,7 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 					tempRaf.seek(currentPosition - startByte);
 					tempRaf.write(buffer, 0, bytesRead);
 				}
+				System.out.println(bytesRead);
 				currentPosition += bytesRead;
 				bytesDownloaded += bytesRead;
 				totalBytesDownloaded.addAndGet(bytesRead);
@@ -337,7 +338,7 @@ public class DownloadDirectLink extends AbstractDownloadObject {
 
 	public static void SetBUFFER(int buffer) {
 		synchronized (DownloadDirectLink.class) {
-			DownloadDirectLink.BUFFER = buffer;
+			DownloadDirectLink.BUFFER = buffer*1024;
 		}
 	}
 

@@ -37,16 +37,6 @@ public class HttpConnection {
 
 		return connection;
 	}
-
-	public static HttpURLConnection createSegmentConnection(URL url, long startByte, long endByte) throws IOException {
-		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-		connection.setRequestMethod("GET");
-		connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-		if (startByte >= 0 && endByte >= 0) {
-			connection.setRequestProperty("Range", "bytes=" + startByte + "-" + endByte);
-		}
-		return connection;
-	}
 	
 	public static InputStream createSegmentConnection(String fileUrl, long currentPosition, long endByte) throws Exception {
 	    try {
