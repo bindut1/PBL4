@@ -50,6 +50,7 @@ public class MainUI extends Application {
 	private JFXButton btnPause;
 	private JFXButton btnResume;
 	public Map<Downloading, ProgressUI> progressUIMap = new HashMap<>();
+	public boolean checkExistTorrentFile = false;
 
 	@Override
 	public void start(Stage primaryStage) {

@@ -129,7 +129,6 @@ public class DownloadTorrent extends AbstractDownloadObject {
 		AtomicLong lastUpdateTime = new AtomicLong(System.currentTimeMillis());
 
 		client.addObserver((o, arg) -> {
-//			float progress = client.getTorrent().getCompletion();
 			long currentTime = System.currentTimeMillis();
 			long timeElapsed = currentTime - lastUpdateTime.get();
 			if (timeElapsed >= 500) {

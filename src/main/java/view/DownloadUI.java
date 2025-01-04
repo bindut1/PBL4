@@ -94,15 +94,23 @@ public class DownloadUI extends Stage {
 		addIcon.setSize("18");
 		addUrlButton.setGraphic(addIcon);
 		addUrlButton.setOnAction(e -> {
-			String url = urlInput.getText().trim();
-			if (!url.isEmpty() && validateInput(url)) {
-				downloadItems.add(new DownloadItem(url, defaultSavePath));
-				urlInput.clear();
-			} else {
-				AlertUI alertUI = new AlertUI(owner, "Thông báo", "Đầu vào không đúng định dạng!");
-				alertUI.showAndWait();
-			}
+		    String url = urlInput.getText().trim();
+		    if (!url.isEmpty() && validateInput(url)) {
+		        boolean alreadyExists = downloadItems.stream()
+		                .anyMatch(item -> item.url.get().equals(url));
+		        if (alreadyExists) {
+		            AlertUI alertUI = new AlertUI(owner, "Thông báo", "URL đã tồn tại trong danh sách tải!");
+		            alertUI.showAndWait();
+		        } else {
+		            downloadItems.add(new DownloadItem(url, defaultSavePath));
+		            urlInput.clear();
+		        }
+		    } else {
+		        AlertUI alertUI = new AlertUI(owner, "Thông báo", "Đầu vào không đúng định dạng!");
+		        alertUI.showAndWait();
+		    }
 		});
+
 
 		JFXButton addTorrentButton = new JFXButton("Thêm Path");
 		addTorrentButton.getStyleClass().add("add-url-button");
@@ -111,14 +119,29 @@ public class DownloadUI extends Stage {
 		addTorrentButton.setGraphic(torrentIcon);
 
 		addTorrentButton.setOnAction(e -> {
-			FileChooser fileChooser = new FileChooser();
-			fileChooser.setTitle("Chọn tập tin Torrent");
-			fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Torrent Files", "*.torrent"));
-			var file = fileChooser.showOpenDialog(this);
-			if (file != null) {
-				downloadItems.add(new DownloadItem(file.getAbsolutePath(), defaultSavePath));
-			}
+			boolean torrentExistsTable = downloadItems.stream()
+		            .anyMatch(item -> item.url.get().endsWith(".torrent")); 
+		    
+		    if (mainUI.checkExistTorrentFile || torrentExistsTable) {
+		        AlertUI alertUI = new AlertUI(owner, "Thông báo", "Hệ thống không hỗ trợ tải song song các file torrent. "
+		                + "Bạn không thể thêm file torrent mới!");
+		        alertUI.showAndWait();
+		        return;
+		    }
+
+		    // Nếu không có file torrent, cho phép chọn file torrent
+		    FileChooser fileChooser = new FileChooser();
+		    fileChooser.setTitle("Chọn tập tin Torrent");
+		    fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Torrent Files", "*.torrent"));
+		    var file = fileChooser.showOpenDialog(this);
+		    if (file != null) {
+		    	mainUI.checkExistTorrentFile = true;
+		        downloadItems.add(new DownloadItem(file.getAbsolutePath(), defaultSavePath));
+		    }
 		});
+
+
+
 
 		inputBox.getChildren().addAll(urlInput, addUrlButton, addTorrentButton);
 
